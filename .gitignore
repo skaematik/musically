@@ -1,2 +1,5 @@
 venv/
 .idea/
+bin/
+.ipynb_checkpoints/
+.git/
