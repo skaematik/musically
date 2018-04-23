@@ -1,0 +1,7 @@
+opencv-python
+opencv-contrib-python
+numpy
+jupyter
+matplotlib
+scipy
+MIDIUtil
