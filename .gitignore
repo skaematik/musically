@@ -3,3 +3,4 @@ venv/
 bin/
 .ipynb_checkpoints/
 .git/
+*.ipynb
