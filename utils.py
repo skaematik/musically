@@ -33,6 +33,9 @@ def find_staffs(img, show_plots=False, top_buffer=20, left_buffer=20, min_width=
     3) segment into separate images any labeled image that is at least min_width
     fraction of total width long.
 
+    If two stave lines are connected into a stanza they will return as one object.
+    Currently any other things inside the bounding box are also returned, but we can trim them
+    if needed.
     :param img: binary image, staff needs to be (roughly) horizontal, make sure background is white
     :param show_plots: where or not to show the results, will pause until keypress
     :param display_for: length of time to display plots for
@@ -41,14 +44,15 @@ def find_staffs(img, show_plots=False, top_buffer=20, left_buffer=20, min_width=
     """
     staff_width, staff_height = calculate_staff_values(img)
     out_erroded = cv2.erode(img, np.ones((staff_height, staff_height)))
-    cv2.imshow('image segmentation dialated',out_erroded)
+    if show_plots:
+        cv2.imshow('image segmentation dialated',out_erroded)
     labeled_image, num_features = ndimage.label(inv(out_erroded))
     # Find the location of all objects
     objs = ndimage.find_objects(labeled_image)
     # Get the height and width
     imgs = []
     for ob in objs:
-        if (ob[1].stop - ob[1].start) > min_width*img.shape[0]:
+        if (ob[1].stop - ob[1].start) > min_width*img.shape[1]:
             imgs.append(img[ob])
             if show_plots:
                 cv2.imshow('image segment {}'.format(len(imgs)), imgs[-1])
