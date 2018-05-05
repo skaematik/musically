@@ -4,3 +4,5 @@ bin/
 .ipynb_checkpoints/
 .git/
 *.ipynb
+*.pyc
+
