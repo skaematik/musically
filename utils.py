@@ -1,4 +1,6 @@
 from collections import Counter
+from operator import itemgetter
+
 import cv2
 import numpy as np
 from scipy import ndimage
@@ -24,8 +26,136 @@ def inv(img, val=255):
         :returns inverted image"""
     return 255-img
 
+def get_staff_lines_from_seeds(seeds, grey_img, staff_black, staff_white,colour_img=None):
+    """
 
-def find_staffs(img, show_plots=False, top_buffer=20, left_buffer=20, min_width=0.8, display_for=10000):
+    :param seeds: from get_staff_seeds
+    :param grey_img: threshold or not either way works
+    :param staff_black: thickness of staff
+    :param staff_white: thickness of staff
+    :param colour_img: None for prod, or pass in for debug
+    :return:
+    """
+    done = []
+    staff_res = 255 * np.ones(grey_img.shape).astype(np.uint8)
+    staff_lines = []
+    for (x,ys) in seeds:
+        for y in ys:
+            breakout=False
+            for d in done:
+                if abs(d-y) < staff_black:
+                    breakout = True
+                    break
+            if breakout:
+                continue
+            line = track(y, staff_res, grey_img, staff_black,
+                         range(x, 0, int(-staff_white/2)))
+            track(y, staff_res, grey_img, staff_black,
+                         range(x, staff_res.shape[1], int(staff_white/2)), line=line)
+            staff_lines.append(line)
+            done.append(y)
+    if colour_img is not None:
+        for line in staff_lines:
+            line = sorted(line, key=itemgetter(0))
+            (prevx, prevy) = line[0]
+            for (x, y) in line:
+                cv2.line(
+                    colour_img,
+                    (x, int(y+staff_black/2)),
+                    (prevx, int(prevy+staff_black/2)),
+                    (255, 0, 255), 2)
+                for yy in range(prevy, prevy + staff_black):
+                    colour_img[yy, prevx] = np.array([0, 0, 255])
+                prevx, prevy = x, y
+        cv2.imshow('staffsColour', colour_img)
+        cv2.waitKey(500)
+    return staff_lines, staff_res
+
+
+def track(y, staff_res, grey, staff_black, range_obj, line=None):
+    if line is None:
+        line = []
+    for x in range_obj:
+        sumLarge = np.sum(grey[y-staff_black:y + 2*staff_black, x])
+        sum = np.sum(grey[y:y+staff_black, x])
+        if (sumLarge - sum) < 255 * staff_black:
+            continue
+        move = 0
+        lowest = sum
+        if np.sum(grey[y - 1:y - 1 + staff_black, x]) < sum:
+            move = -1
+            lowest = np.sum(grey[y - 1:y - 1 + staff_black, x])
+            if np.sum(grey[y - 2:y - 2 + staff_black, x]) < lowest:
+                move = -2
+                lowest = np.sum(grey[y - 2:y - 2 + staff_black, x])
+        if np.sum(grey[y + 1:y + 1 + staff_black, x]) < lowest:
+            move = 1
+            lowest = np.sum(grey[y + 1:y + 1 + staff_black, x])
+            if np.sum(grey[y + 2:y + 2 + staff_black, x]) < lowest:
+                move = 2
+                np.sum(grey[y + 2:y + 2 + staff_black, x])
+        # fill in
+
+        y += move
+        line.append((x,y))
+        staff_res[y:y+staff_black, x] = np.ones((1, staff_black))
+    return line
+
+def get_staff_seeds(img, colour_img):
+    """
+    Find seed locations for line tracker.
+    :param img: binary image
+    :param colour_img:  colour image (for pretty printing)
+    :return: an array of tuples (x values, list of y values) corresponding
+        to where the black lines start
+    """
+    staff_black, staff_white = calculate_staff_values(img)
+    seeds = []
+    is_white_run = True
+    lastBlackrun = 0
+    lastBlackrunY = 0
+    combos=0
+    curCombo = []
+
+    for x in range(int(img.shape[1]/2-img.shape[1]/10), int(img.shape[1]/2+img.shape[1]/10)):
+        count = 0
+        for y in range(img.shape[0]):
+            cur_white = img[y, x] == 255
+            if cur_white != is_white_run:
+                if is_white_run:
+                    if lastBlackrun == staff_black and count == staff_white:
+                        for yy in range(y-staff_black-staff_white,y):
+                            colour_img[yy, x] = np.array([0,255,255])
+                        combos += 0.5
+                        curCombo.append(lastBlackrunY)
+                    else:
+                        combos = 0
+                        curCombo = []
+                else:
+                    lastBlackrun = count  # record this run
+                    lastBlackrunY = y - count
+                    if lastBlackrun == staff_black:
+                        combos += 0.5
+                    else:
+                        combos = 0
+                        curCombo = []
+                count = 0
+            is_white_run = cur_white
+            count += 1
+            if combos == 4.5:
+                curCombo.append(lastBlackrunY)
+                seeds.append((x, curCombo))
+                combos = 0
+                curCombo = []
+    for (x,ys) in seeds:
+        for y in ys:
+            for yy in range(y, y+staff_black):
+                colour_img[yy, x] = np.array([255, 0, 255])
+    return seeds
+
+
+
+def find_stazas(img, show_plots=False, top_buffer=20, left_buffer=20, min_width=0.8, display_for=10000):
     """Finds each line of music in the img and returns each in a list
     Steps:
     1) dialate the image by same width as staff height to ensure connectedness
@@ -75,7 +205,7 @@ def calculate_staff_values(img):
     blackruns = Counter()
     whiteruns = Counter()  # key is run length val is count of this run length
     is_white = True
-    for x in range(img.shape[1]):
+    for x in range(int(img.shape[1] / 2 - img.shape[1] / 20), int(img.shape[1] / 2 + img.shape[1] / 20)):
         count = 0
         for y in range(img.shape[0]):
             cur_white = img[y, x] == 255
