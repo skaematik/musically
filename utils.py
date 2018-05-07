@@ -20,10 +20,12 @@ class Segmenter:
     boxes: tuples of (x,y,width,height) where ROIs are
     staff_black: thickness of black lines
     staff_white: thickness of white lines
+    process_wdith: used in staff detection and seeding, will search the middle+- width/process_wdith, default will
+    search 10%.
     DONT EDIT THESE IMAGES MAKE A COPY INSTEAD
     """
 
-    def __init__(self, filename,process_width):
+    def __init__(self, filename,process_width=20):
         self.process_width = process_width
         self.grey_img = cv2.imread(filename, 0)
         if self.grey_img is None:
@@ -89,6 +91,7 @@ class Segmenter:
         if self.seeds is not None and not debug:
             return self.seeds, None  # cached
         staff_black, staff_white = self.calculate_staff_values()
+        colour_img = None
         colour_img = None
         if debug:
             colour_img = np.array(self.col_img, copy=True)
@@ -205,11 +208,12 @@ class Segmenter:
 
         if self.staff_lines is not None and not debug:
             return self.staff_lines, None
+        colour_img = None
         if debug:
             colour_img = np.array(self.col_img, copy=True)
         grey_img = self.bin_img
         staff_black, staff_white = self.calculate_staff_values()
-        seeds = self.get_staff_seeds()
+        seeds, _ = self.get_staff_seeds()
         done = []
         staff_res = 255 * np.ones(grey_img.shape).astype(np.uint8)
         staff_lines = []
@@ -266,7 +270,7 @@ class Segmenter:
             return self.staff_removed
         img = np.array(self.bin_img,copy=True)
         staff_black, staff_white = self.calculate_staff_values()
-        staff_lines = self.get_staff_lines_from_seeds()
+        staff_lines, _ = self.get_staff_lines_from_seeds()
         for line in staff_lines:
             line = sorted(line, key=itemgetter(0))
             (prevx, prevy) = line[0]

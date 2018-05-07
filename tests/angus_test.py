@@ -15,26 +15,9 @@ def main():
     for filename in os.listdir('./sheets/'):
         if filename.endswith('.jpg') or filename.endswith('.jepg') or filename.endswith('.png'):
             print(filename)
-            img = cv2.imread(os.path.join('./sheets/',filename))
-            img_grey = import_img_greyscale(os.path.join('./sheets/',filename))
-            out = inv(cv2.adaptiveThreshold(
-                inv(img_grey,255),255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,31,0))
-            staff_black, staff_white = calculate_staff_values(out)
-            seeds, seed_locs = get_staff_seeds(out, img, staff_black, staff_white)
-            staffs, _, staffs_highlighted = get_staff_lines_from_seeds(
-                seeds, img_grey, staff_black, staff_white, colour_img=cv2.imread(os.path.join('./sheets/',filename)))
-            removed_image = remove_staff_lines(out, staffs, staff_black, staff_white)
-            removed_image2 = inv(cv2.morphologyEx(
-                inv(removed_image), cv2.MORPH_CLOSE, np.ones((int(math.ceil(staff_black/2)), int(math.ceil(staff_black/2))), np.uint8)))
-            removed_image2 = inv(cv2.morphologyEx(
-                inv(removed_image2), cv2.MORPH_OPEN, np.ones((int(math.ceil(staff_black/2)), int(math.ceil(staff_black/2))), np.uint8)))
-            _, boxed = boundingboxes(inv(removed_image2))
-            cv2.imwrite('./tests/output/{}_seeds.png'.format(filename[:-4]), seed_locs)
-            cv2.imwrite('./tests/output/{}_staffs.png'.format(filename[:-4]), staffs_highlighted)
-            cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), removed_image)
-            cv2.imwrite('./tests/output/{}_removed2.png'.format(filename[:-4]), removed_image2)
-            cv2.imwrite('./tests/output/{}_boxed.png'.format(filename[:-4]), boxed)
-
+            segmenter = Segmenter(os.path.join('./sheets/',filename))
+            img = segmenter.remove_staff_lines()
+            cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
     return
 
     def nothing(x):
