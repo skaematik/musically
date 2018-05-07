@@ -5,6 +5,7 @@ from collections import Counter
 import cv2
 import numpy as np
 
+from Segmenter import Segmenter
 from utils import *
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
