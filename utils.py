@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from Symbol import *
+
 def inv(img, val=255):
     """ Inverts image
         :arg img
@@ -10,14 +12,20 @@ def inv(img, val=255):
     return 255-img
 
 
-def boundingboxes(im, merge_overlap=False):
-    """draws bounding boxes around detected objects
+def getSymbols(im, merge_overlap=False):
+    """finds and draws bounding boxes around detected objects, returns boxes as Symbols
     
     im: black and white image - black background, white foreground
     merge_overlap: whether to merge overlapping bounding boxes
     
-    returns: list of boxes in tuple (x,y,width,height) format, rgb image with boxes drawn
+    returns: list of Symbols, rgb image with bounding boxes drawn
     """
+    def boxes2symbols(boxes):
+        symbols = []
+        for x, y, w, h in boxes:
+            symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h))
+        return symbols
+    
     def draw(im, boxes):
         for x, y, w, h in boxes:
             cv2.rectangle(im, (x, y), (x+w, y+h), (0, 255, 0), thickness=1)
@@ -67,4 +75,6 @@ def boundingboxes(im, merge_overlap=False):
     
     draw(colour, boxes);
     
-    return boxes, colour
+    symbols = boxes2symbols(boxes)
+    
+    return symbols, colour
