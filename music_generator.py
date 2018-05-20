@@ -1,5 +1,6 @@
 from music21 import *
 import numpy as np
+from music21.converter.subConverters import ConverterMusicXML
 
 
 class MusicGenerator:
@@ -77,20 +78,46 @@ class MusicGenerator:
         return str(per_measure) + "/" + str(self.per_beat) + " " + string
 
 
+
+def gen_pieces(n):
+    for i in range(n):
+        note_weights = [1] * len(MusicGenerator.note_range)
+        note_weights[0] = 1
+
+        time_weights = [1] * len(MusicGenerator.time_range)
+
+        options = {}
+        options["note_weights"] = note_weights
+        options["time_weights"] = time_weights
+
+        generator = MusicGenerator(options=options)
+        musc = generator.tinynotation()
+
+        print(musc)
+        stream = converter.parse("tinynotation: " + musc)
+        # stream.show("text")
+        # stream.show("musicxml")
+        conv_musicxml = ConverterMusicXML()
+        scorename = 'myScoreName{:03}.xml'.format(i)
+        filepath = './tests/' + scorename
+        out_filepath = conv_musicxml.write(stream, 'musicxml', fp=filepath, subformats=['png'])
+
+
 if __name__ == "__main__":
+    gen_pieces(20)
     note_weights = [1] * len(MusicGenerator.note_range)
     note_weights[0] = 1
-    
+
     time_weights = [1] * len(MusicGenerator.time_range)
-    
+
     options = {}
     options["note_weights"] = note_weights
     options["time_weights"] = time_weights
-    
+
     generator = MusicGenerator(options=options)
     musc = generator.tinynotation()
-    
+
     print(musc)
     stream = converter.parse("tinynotation: " + musc)
     stream.show("text")
-    stream.show()
+    stream.show("musicxml")
