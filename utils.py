@@ -1,5 +1,9 @@
+import math
+
 import cv2
 import numpy as np
+from vec_noise import snoise2
+
 from Symbol import *
 
 def inv(img, val=255):
@@ -78,3 +82,30 @@ def getSymbols(im, merge_overlap=False):
     symbols = boxes2symbols(boxes)
     
     return symbols, colour
+
+
+def add_noise(image, octaves=20, dark_fac=40, freq=3.0, persistence=0.3, lacunarity=0.9):
+    """
+    some help from https://stackoverflow.com/questions/14435632/impulse-gaussian-and-salt-and-pepper-noise-with-opencv
+    """
+    freq = freq * octaves
+    mean = np.mean(image)
+    var = np.var(image)/2
+    row,col = image.shape
+    noise = np.zeros(image.shape)
+    for y in range(image.shape[0]):
+        for x in range(image.shape[1]):
+            noise[y, x] = (int((snoise2(x / freq, y / freq,
+                                        octaves,
+                                        persistence=persistence,
+                                        lacunarity=lacunarity) + 1) * dark_fac))
+    gauss = np.random.normal(mean, math.sqrt(var), (row, col))
+    gauss = gauss.reshape(row, col)
+    # noise = noise + gauss
+    noise[(image < 50)] = 0
+    noise = image.astype(np.float64) - noise
+    noise = noise / np.max(noise) * 255
+    # noise = noise + gauss
+    # noise = noise / np.max(noise) * 255
+    noise = noise.astype(np.uint8)
+    return noise

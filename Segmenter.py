@@ -1,5 +1,8 @@
-import cv2
+from operator import itemgetter
+from collections import Counter
 
+import cv2
+import math
 from utils import *
 
 
@@ -26,8 +29,8 @@ class Segmenter:
         if self.grey_img is None:
             raise FileNotFoundError
         self.col_img = cv2.imread(filename)
-        self.bin_img = inv(cv2.adaptiveThreshold(
-                inv(self.grey_img, 255), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 0))
+        _, self.bin_img = cv2.threshold(self.grey_img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        self.bin_img = inv(self.bin_img)
         self.staff_black, self.staff_white = 0, 0
         self.staff_black, self.staff_white = self.calculate_staff_values()
         self.seeds = None
@@ -265,14 +268,14 @@ class Segmenter:
                 for xx in range(prev_x, x):
                     y_int = round(prev_y + (y - prev_y) * (xx - prev_x) / (x - prev_x))
                     if check_above_amount(img, xx, y - 1, math.ceil(staff_black / 2)) > 0 and \
-                            check_below_amount(img, xx, y + staff_black, math.ceil(staff_black / 2)) > 0:
+                            check_below_amount(img, xx, y + staff_black, int(math.ceil(staff_black / 2))) > 0:
                         continue
                     increase_by = 0
-                    above_amount = check_above_amount(img, xx, y - 1, math.ceil(staff_black / 2) + 1)
+                    above_amount = check_above_amount(img, xx, y - 1, int(math.ceil(staff_black / 2)) + 1)
                     if above_amount != math.ceil(staff_black / 2) + 1:
                         y_int -= above_amount
                         increase_by += above_amount
-                    below_amount = check_below_amount(img, xx, y + staff_black, math.ceil(staff_black / 2) + 1)
+                    below_amount = check_below_amount(img, xx, y + staff_black, int(math.ceil(staff_black / 2)) + 1)
                     if below_amount != math.ceil(staff_black / 2) + 1:
                         increase_by += below_amount
                     for yy in range(y_int, y_int + staff_black + increase_by):

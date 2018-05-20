@@ -37,7 +37,6 @@ all_single_semiquavers = converter.parse("tinynotation: 4/4 " + " ".join(single_
 all_multi_quavers = converter.parse("tinynotation: 4/4 " + " ".join([a+"8" for a in fullrange]))
 all_multi_semiquavers = converter.parse("tinynotation: 4/4 " + " ".join([a+"16" for a in fullrange]))
 
-"""
 all_crotchets.show()
 all_halfs.show()
 all_wholes.show()
@@ -46,6 +45,6 @@ all_single_quavers.show()
 all_single_semiquavers.show()
 all_multi_quavers.show()
 all_multi_semiquavers.show()
-"""
+
 
 
