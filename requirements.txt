@@ -1,3 +1,5 @@
+scipy
 opencv-python
 opencv-contrib-python
 numpy
+vec_noise

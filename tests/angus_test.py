@@ -40,8 +40,10 @@ def main():
             # noise = img.astype(np.float64) - noise
             # noise = noise / np.max(noise) * 255
             # noise = noise.astype(np.uint8)
-            noise = add_noise(img)
-            cv2.imwrite('./sheets/{}_noise.png'.format(filename[:-4]),noise)
+            # noise = add_noise(img)
+            im_merge_t = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
+
+            cv2.imwrite('./sheets/{}_noise.png'.format(filename[:-4]),im_merge_t)
             segmenter = Segmenter(os.path.join('./sheets/',filename))
             img = segmenter.remove_staff_lines()
             cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
@@ -117,3 +119,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# Define function to draw a grid# Defin
+def draw_grid(im, grid_size):
+    # Draw grid lines
+    for i in range(0, im.shape[1], grid_size):
+        cv2.line(im, (i, 0), (i, im.shape[0]), color=(255,))
+    for j in range(0, im.shape[0], grid_size):
+        cv2.line(im, (0, j), (im.shape[1], j), color=(255,))
+

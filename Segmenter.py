@@ -216,9 +216,9 @@ class Segmenter:
                 if breakout:
                     continue
                 line = track(y, staff_res, grey_img, staff_black,
-                             range(x, 0, int(-staff_white / 2)))
+                             range(x, 0, int(-staff_white / 4)))
                 track(y, staff_res, grey_img, staff_black,
-                      range(x, staff_res.shape[1], int(staff_white / 2)), line=line)
+                      range(x, staff_res.shape[1], int(staff_white / 4)), line=line)
                 staff_lines.append(line)
                 done.append(y)
         if debug:
