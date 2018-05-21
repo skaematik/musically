@@ -18,16 +18,16 @@ See `development-requirements.txt`. Only needed for development/testing/visualis
 ## how to set up a virtualenv
 Windows:
 
-`/path/to/python/Scripts/virtualenv.exe --python=/path/to/python3/python.exe venv`
-
-`source venv/Scripts/activate`
-
-`pip install -r requirements.txt`
+```bash
+/path/to/python/Scripts/virtualenv.exe --python=/path/to/python3/python.exe venv
+source venv/Scripts/activate
+pip install -r requirements.txt
+```
 
 Other:
 
-`virtualenv --python=/path/to/python3 venv`
-
-`source venv/bin/activate`
-
-`pip install -r requirements.txt`
+```bash
+virtualenv --python=/path/to/python3 venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
