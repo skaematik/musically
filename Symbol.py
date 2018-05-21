@@ -1,9 +1,11 @@
 from enum import Enum
 
+
 class NoteValue(Enum):
     UNKNOWN = 0
     REST = 1
-    A3 = 440  # whatever the music21/midi format needs? ( havent looked this up)
+    # whatever the music21/midi format needs? ( havent looked this up)
+    A3 = 440
 
 
 class SymbolType(Enum):
@@ -42,8 +44,8 @@ class Symbol:
         """
 
     def __init__(self, type, x, y, w, h):
-        self.type = type # type SymbolType
-        self.symbol_order = 0 # not sure how to set this
+        self.type = type  # type SymbolType
+        self.symbol_order = 0  # not sure how to set this
         self.bar_num = 0        # For modifers that last the whole bar
         self.line_num = 0
         self.x = x
@@ -51,7 +53,7 @@ class Symbol:
         self.w = w
         self.h = h
         self.value = NoteValue.REST
-        self.modifers = [] # if this is a note with modifers
+        self.modifers = []  # if this is a note with modifers
 
     def work_out_type(self):
         pass
@@ -87,4 +89,3 @@ class Symbol:
                (self.type == SymbolType.FLAT) or\
                (self.type == SymbolType.NATURAL) or\
                (self.type == SymbolType.TIMESIG)  # im not sure about this one being a good idea
-

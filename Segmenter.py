@@ -1,8 +1,9 @@
-from operator import itemgetter
+import math
 from collections import Counter
+from operator import itemgetter
 
 import cv2
-import math
+
 from utils import *
 
 
@@ -23,20 +24,20 @@ class Segmenter:
     DONT EDIT THESE IMAGES MAKE A COPY INSTEAD
     """
 
-    def __init__(self, filename,process_width=20):
+    def __init__(self, filename, process_width=20):
         self.process_width = process_width
         self.grey_img = cv2.imread(filename, 0)
         if self.grey_img is None:
             raise FileNotFoundError
         self.col_img = cv2.imread(filename)
-        _, self.bin_img = cv2.threshold(self.grey_img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        _, self.bin_img = cv2.threshold(
+            self.grey_img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         self.bin_img = inv(self.bin_img)
         self.staff_black, self.staff_white = 0, 0
         self.staff_black, self.staff_white = self.calculate_staff_values()
         self.seeds = None
         self.staff_removed = None
         self.staff_lines = None
-
 
     def calculate_staff_values(self):
         """Calculates the staff_width and staff height
@@ -258,7 +259,7 @@ class Segmenter:
 
         if self.staff_removed is not None:
             return self.staff_removed
-        img = np.array(self.bin_img,copy=True)
+        img = np.array(self.bin_img, copy=True)
         staff_black, staff_white = self.calculate_staff_values()
         staff_lines, _ = self.get_staff_lines_from_seeds()
         for line in staff_lines:
@@ -266,16 +267,19 @@ class Segmenter:
             (prev_x, prev_y) = line[0]
             for (x, y) in line:
                 for xx in range(prev_x, x):
-                    y_int = round(prev_y + (y - prev_y) * (xx - prev_x) / (x - prev_x))
+                    y_int = round(prev_y + (y - prev_y) *
+                                  (xx - prev_x) / (x - prev_x))
                     if check_above_amount(img, xx, y - 1, math.ceil(staff_black / 2)) > 0 and \
                             check_below_amount(img, xx, y + staff_black, int(math.ceil(staff_black / 2))) > 0:
                         continue
                     increase_by = 0
-                    above_amount = check_above_amount(img, xx, y - 1, int(math.ceil(staff_black / 2)) + 1)
+                    above_amount = check_above_amount(
+                        img, xx, y - 1, int(math.ceil(staff_black / 2)) + 1)
                     if above_amount != math.ceil(staff_black / 2) + 1:
                         y_int -= above_amount
                         increase_by += above_amount
-                    below_amount = check_below_amount(img, xx, y + staff_black, int(math.ceil(staff_black / 2)) + 1)
+                    below_amount = check_below_amount(
+                        img, xx, y + staff_black, int(math.ceil(staff_black / 2)) + 1)
                     if below_amount != math.ceil(staff_black / 2) + 1:
                         increase_by += below_amount
                     for yy in range(y_int, y_int + staff_black + increase_by):
