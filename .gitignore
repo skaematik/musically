@@ -5,4 +5,5 @@ bin/
 .git/
 *.ipynb
 *.pyc
-
+.vscode
+settings.json

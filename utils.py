@@ -2,11 +2,12 @@ import math
 
 import cv2
 import numpy as np
-from vec_noise import snoise2
-from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.interpolation import map_coordinates
 
 from Symbol import *
+from vec_noise import snoise2
+
 
 def inv(img, val=255):
     """ Inverts image
@@ -20,10 +21,10 @@ def inv(img, val=255):
 
 def getSymbols(im, merge_overlap=False):
     """finds and draws bounding boxes around detected objects, returns boxes as Symbols
-    
+
     im: black and white image - black background, white foreground
     merge_overlap: whether to merge overlapping bounding boxes
-    
+
     returns: list of Symbols, rgb image with bounding boxes drawn
     """
     def boxes2symbols(boxes):
@@ -31,21 +32,21 @@ def getSymbols(im, merge_overlap=False):
         for x, y, w, h in boxes:
             symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h))
         return symbols
-    
+
     def draw(im, boxes):
         for x, y, w, h in boxes:
             cv2.rectangle(im, (x, y), (x+w, y+h), (0, 255, 0), thickness=1)
-    
+
     def box2pts(box):
         x, y, w, h = box
         return (x, y), (x + w, y + h)
-    
+
     def merge_overlaps(boxes):
         def overlapping(b1, b2):
             l1, r1 = box2pts(b1)
             l2, r2 = box2pts(b2)
             return not (l1[0] > r2[0] or l2[0] > r1[0] or l1[1] > r2[1] or l2[1] > r1[1])
-        
+
         def next():
             for i in range(len(boxes)):
                 for j in range(len(boxes)):
@@ -54,7 +55,7 @@ def getSymbols(im, merge_overlap=False):
                         b2 = boxes.pop(i)
                         return b1, b2
             return None
-        
+
         while True:
             pair = next()
             if pair is None:
@@ -62,27 +63,27 @@ def getSymbols(im, merge_overlap=False):
             b1, b2 = pair
             l1, r1 = box2pts(b1)
             l2, r2 = box2pts(b2)
-            
+
             x = min(l1[0], l2[0])
             x_ = max(r1[0], r2[0])
             y = min(l1[1], l2[1])
             y_ = max(r1[1], r2[1])
             w, h = x_ - x, y_ - y
             boxes.append((x, y, w, h))
-        
-        
-    _, contours, _ = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    _, contours, _ = cv2.findContours(
+        im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     boxes = [cv2.boundingRect(c) for c in contours]
-    
+
     colour = np.dstack((im, im, im))
-    
+
     if merge_overlap:
         merge_overlaps(boxes)
-    
-    draw(colour, boxes);
-    
+
+    draw(colour, boxes)
+
     symbols = boxes2symbols(boxes)
-    
+
     return symbols, colour
 
 
@@ -93,7 +94,7 @@ def add_noise(image, octaves=20, dark_fac=40, freq=3.0, persistence=0.3, lacunar
     freq = freq * octaves
     mean = np.mean(image)
     var = np.var(image)/2
-    row,col = image.shape
+    row, col = image.shape
     noise = np.zeros(image.shape)
     for y in range(image.shape[0]):
         for x in range(image.shape[1]):
