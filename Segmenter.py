@@ -1,3 +1,4 @@
+import os
 from operator import itemgetter
 from collections import Counter
 
@@ -36,6 +37,7 @@ class Segmenter:
         self.seeds = None
         self.staff_removed = None
         self.staff_lines = None
+        self.symbols = None
 
 
     def calculate_staff_values(self):
@@ -289,3 +291,94 @@ class Segmenter:
             np.ones((int(math.ceil(staff_black / 2)), int(math.ceil(staff_black / 2))), np.uint8)))
         self.staff_removed = img
         return img
+
+    def getSymbols(self, merge_overlap=False):
+        """finds and draws bounding boxes around detected objects, returns boxes as Symbols
+
+
+        merge_overlap: whether to merge overlapping bounding boxes
+
+        returns: saves list of Symbols, returns rgb image with bounding boxes drawn
+        """
+        im = inv(self.staff_removed)
+        def boxes2symbols(boxes):
+            symbols = []
+            for x, y, w, h in boxes:
+                symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h))
+            return symbols
+
+        def draw(im, boxes):
+            for x, y, w, h in boxes:
+                cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), thickness=1)
+
+        def box2pts(box):
+            x, y, w, h = box
+            return (x, y), (x + w, y + h)
+
+        def merge_overlaps(boxes):
+            def overlapping(b1, b2):
+                l1, r1 = box2pts(b1)
+                l2, r2 = box2pts(b2)
+                return not (l1[0] > r2[0] or l2[0] > r1[0] or l1[1] > r2[1] or l2[1] > r1[1])
+
+            def next():
+                for i in range(len(boxes)):
+                    for j in range(len(boxes)):
+                        if i < j and overlapping(boxes[i], boxes[j]):
+                            b1 = boxes.pop(j)
+                            b2 = boxes.pop(i)
+                            return b1, b2
+                return None
+
+            while True:
+                pair = next()
+                if pair is None:
+                    break
+                b1, b2 = pair
+                l1, r1 = box2pts(b1)
+                l2, r2 = box2pts(b2)
+
+                x = min(l1[0], l2[0])
+                x_ = max(r1[0], r2[0])
+                y = min(l1[1], l2[1])
+                y_ = max(r1[1], r2[1])
+                w, h = x_ - x, y_ - y
+                boxes.append((x, y, w, h))
+
+        _, contours, _ = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        boxes = [cv2.boundingRect(c) for c in contours]
+
+        colour = np.dstack((im, im, im))
+
+        if merge_overlap:
+            merge_overlaps(boxes)
+
+        draw(colour, boxes);
+
+        symbols = boxes2symbols(boxes)
+        self.symbols = symbols
+        return colour
+
+    def saveSymbols(self, format, save_origonal=False, path='./', width=150,reject_ratio=10,min_area=900,reject_path='./'):
+        base_img = self.grey_img if save_origonal else self.staff_removed
+        count=0
+        for sym in self.symbols:
+            scale = 1
+
+            while max(max(sym.w, sym.h), width) != width:
+                width *= 2
+                scale *= 2  # use later
+            offsetx = (width - sym.w) // 2
+            offsety = (width - sym.h) // 2
+            im = np.ones((width,width),dtype=np.uint8)*255  # white
+            im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
+                base_img[sym.y:(sym.y+sym.h), sym.x:(sym.x+sym.w)]
+            im = cv2.resize(im, (width//2, width//2), interpolation=cv2.INTER_CUBIC)
+
+            if sym.h/sym.w > reject_ratio:
+                cv2.imwrite(os.path.join(reject_path, 'ratio_'+format.format(count)), im)
+            elif sym.w * sym.h < min_area:
+                cv2.imwrite(os.path.join(reject_path, 'size_'+format.format(count)), im)
+            else:
+                cv2.imwrite(os.path.join(path,format.format(count)), im)
+            count += 1

@@ -128,7 +128,7 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     shape = image.shape
 
     dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
-    dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha/2
+    dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
 
     x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
     indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1))

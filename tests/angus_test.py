@@ -15,7 +15,7 @@ from vec_noise import pnoise2, snoise2
 
 def main():
 
-    for filename in os.listdir('./sheets/'):
+    for filename in os.listdir('./sheets/autogen/'):
         if filename.endswith('.jpg') or filename.endswith('.jepg') or filename.endswith('.png'):
             print(filename)
             if filename == "file-page1.png" or filename == "file-page2.png" or filename == "file-page3.png" or \
@@ -27,7 +27,13 @@ def main():
             # freq = 3.0 * octaves
             # persistence = 0.3
             # lacunarity = 0.9
-            img = cv2.imread(os.path.join('./sheets/',filename), 0)
+            img = cv2.imread(os.path.join('./sheets/autogen/',filename), 0)
+            top = int(0.4 * img.shape[0])  # shape[0] = rows
+            bottom = top
+            left = int(0.4 * img.shape[1])  # shape[1] = cols
+            right = left
+            img = cv2.copyMakeBorder(img, top, top, top, top, cv2.BORDER_CONSTANT, None, 255)
+
             # noise = np.zeros(img.shape)
             # noisey_img = noisy('gauss', img)
             # for y in range(img.shape[0]):
@@ -41,13 +47,13 @@ def main():
             # noise = noise / np.max(noise) * 255
             # noise = noise.astype(np.uint8)
             # noise = add_noise(img)
-            im_merge_t = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
-
-            cv2.imwrite('./sheets/{}_noise.png'.format(filename[:-4]),im_merge_t)
-            segmenter = Segmenter(os.path.join('./sheets/',filename))
+            deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
+            noise = add_noise(deformed)
+            cv2.imwrite('./sheets/tmp/{}_noise.png'.format(filename[:-4]),noise)
+            segmenter = Segmenter(os.path.join('./sheets/autogen/',filename))
             img = segmenter.remove_staff_lines()
             cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
-            segmenter = Segmenter(os.path.join('./sheets/', '{}_noise.png'.format(filename[:-4])))
+            segmenter = Segmenter(os.path.join('./sheets/tmp/', '{}_noise.png'.format(filename[:-4])))
             img = segmenter.remove_staff_lines()
             cv2.imwrite('./tests/output/{}_noise_removed.png'.format(filename[:-4]), img)
     return
