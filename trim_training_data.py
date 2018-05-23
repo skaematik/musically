@@ -16,7 +16,7 @@ def main():
             staff_removed = segmenter.remove_staff_lines()
             boxed = segmenter.getSymbols(merge_overlap=True)
             cv2.imwrite(output_path+'boxed{}.png'.format(filename[:-6]), boxed)
-            segmenter.saveSymbols(save_origonal=False, format=filename[:-6]+'_note{:03}.png', width=150, path=output_path,reject_path=reject_parth)
+            segmenter.saveSymbols(save_origonal=False, format=filename[:-6]+'_note{:03}.png', width=150, path=output_path,reject_path=reject_parth,dirty_times=0)
 
 
 if __name__ == '__main__':

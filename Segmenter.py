@@ -361,12 +361,14 @@ class Segmenter:
         draw(colour, boxes);
 
         symbols = boxes2symbols(boxes)
+        symbols.sort(key=lambda sym: sym.w*sym.h)
         self.symbols = symbols
         return colour
 
-    def saveSymbols(self, format, save_origonal=False, path='./', width=150,reject_ratio=10,min_area=900,reject_path='./'):
+    def saveSymbols(self, format, save_origonal=False, path='./', width=150,reject_ratio=100,min_area=0,reject_path='./', dirty_times=0):
         base_img = self.grey_img if save_origonal else self.staff_removed
         count=0
+        o_width = width
         for sym in self.symbols:
             scale = 1
 
@@ -378,12 +380,17 @@ class Segmenter:
             im = np.ones((width,width),dtype=np.uint8)*255  # white
             im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
                 base_img[sym.y:(sym.y+sym.h), sym.x:(sym.x+sym.w)]
-            im = cv2.resize(im, (width//2, width//2), interpolation=cv2.INTER_CUBIC)
+            im = cv2.resize(im, (o_width, o_width), interpolation=cv2.INTER_CUBIC)
 
             if sym.h/sym.w > reject_ratio:
                 cv2.imwrite(os.path.join(reject_path, 'ratio_'+format.format(count)), im)
             elif sym.w * sym.h < min_area:
                 cv2.imwrite(os.path.join(reject_path, 'size_'+format.format(count)), im)
             else:
-                cv2.imwrite(os.path.join(path,format.format(count)), im)
+                if dirty_times == 0:
+                    cv2.imwrite(os.path.join(path,format.format(count)), im)
+                else:
+                    for i in range(dirty_times):
+                        cv2.imwrite(os.path.join(path, format.format(count)), dirty(im))
+                        count += 1
             count += 1

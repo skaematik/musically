@@ -1,4 +1,5 @@
 import math
+import random
 
 import cv2
 import numpy as np
@@ -18,7 +19,7 @@ def inv(img, val=255):
         :returns inverted image"""
     return 255-img
 
-
+# depreciated
 def getSymbols(im, merge_overlap=False):
     """finds and draws bounding boxes around detected objects, returns boxes as Symbols
 
@@ -96,9 +97,11 @@ def add_noise(image, octaves=20, dark_fac=40, freq=3.0, persistence=0.3, lacunar
     var = np.var(image)/2
     row, col = image.shape
     noise = np.zeros(image.shape)
+    offx = random.random()
+    offy = random.random()
     for y in range(image.shape[0]):
         for x in range(image.shape[1]):
-            noise[y, x] = (int((snoise2(x / freq, y / freq,
+            noise[y, x] = (int((snoise2(offx + x / freq, offy + y / freq,
                                         octaves,
                                         persistence=persistence,
                                         lacunarity=lacunarity) + 1) * dark_fac))
@@ -135,3 +138,7 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1))
 
     return map_coordinates(image, indices, order=1, mode='reflect').reshape(shape)
+
+
+def dirty(im):
+    return elastic_transform(add_noise(im), im.shape[1] * 2, im.shape[1] * 0.1)
