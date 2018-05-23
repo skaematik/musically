@@ -5,3 +5,5 @@ numpy==1.14.2
 jupyter==1.0.0
 matplotlib==2.2.2
 MIDIUtil==1.2.1
+Flask==0.12.2
+Flask-cors==3.0.4

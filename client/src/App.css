@@ -1,0 +1,40 @@
+.App {
+  text-align: center;
+  margin: 0 auto;
+  padding: 2px;
+}
+
+.App-logo {
+  height: 80px;
+  opacity: 0.8;
+  transition: all .2s;
+}
+
+.App-logo:hover {
+  opacity: 0.96;
+  transform: scale(1.17);
+}
+
+.App-header {
+  background: linear-gradient(141deg, #0fb8ad 0%, #1fc8db 51%, #2cb5e8 75%);
+  height: 150px;
+  padding: 20px;
+  color: #f3f3f3;
+}
+
+.App-title {
+  font-size: 1.5em;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+.input {
+  padding: 20px;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

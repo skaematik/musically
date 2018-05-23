@@ -17,20 +17,22 @@ from keras.models import load_model
 
 def main():
     model = load_model('./resources/model/keras_model.h5')
-    labels = { 0: "eight_tied",
-1: "trebble",
-2: "time",
-3: "sixteenth_rest",
-4: "half",
-5: "eight_rest",
-6: "eight",
-7: "quarter",
-8: "whole",
-9: "sixteenth",
-10: "barlines"}
+    labels = { 
+        0: "eight_tied",
+        1: "trebble",
+        2: "time",
+        3: "sixteenth_rest",
+        4: "half",
+        5: "eight_rest",
+        6: "eight",
+        7: "quarter",
+        8: "whole",
+        9: "sixteenth",
+        10: "barlines"
+    }
 
     for filename in os.listdir('./sheets/final pieces/'):
-        if filename.endswith('.jpg') or filename.endswith('.jepg') or filename.endswith('.png'):
+        if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
             print(filename)
             if filename == "file-page1.png" or filename == "file-page2.png" or filename == "file-page3.png" or \
                     filename[:-4].endswith("noise"):

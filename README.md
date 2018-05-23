@@ -31,3 +31,28 @@ virtualenv --python=/path/to/python3 venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## for the server
+
+The start the development server:
+
+```bash
+python app.py
+```
+
+The following flags are available:
+
+```
+-d (debug mode)
+--port x (which port to use)
+```
+
+### for the client
+
+To start the React app:
+
+```
+cd client
+yarn
+yarn start
+```
