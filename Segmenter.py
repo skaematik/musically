@@ -363,7 +363,32 @@ class Segmenter:
         symbols = boxes2symbols(boxes)
         symbols.sort(key=lambda sym: sym.w*sym.h)
         self.symbols = symbols
+        self.add_in_pictures()
         return colour
+
+    def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=150):
+        """
+        adds images into symbol objects. none fixed width does not work yet
+        :param from_staff_removed:
+        :param fixed_width:
+        :param width:
+        :return:
+        """
+        base_img = self.staff_removed if from_staff_removed else self.grey_img
+        o_width = width
+        for sym in self.symbols:
+            scale = 1
+
+            while max(max(sym.w, sym.h), width) != width:
+                width *= 2
+                scale *= 2  # use later
+            offsetx = (width - sym.w) // 2
+            offsety = (width - sym.h) // 2
+            im = np.ones((width, width), dtype=np.uint8) * 255  # white
+            im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
+                base_img[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
+            im = cv2.resize(im, (o_width, o_width), interpolation=cv2.INTER_CUBIC)
+            sym.im = im
 
     def saveSymbols(self, format, save_origonal=False, path='./', width=150,reject_ratio=100,min_area=0,reject_path='./', dirty_times=0):
         base_img = self.grey_img if save_origonal else self.staff_removed

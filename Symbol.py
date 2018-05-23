@@ -52,6 +52,7 @@ class Symbol:
         self.y = y
         self.w = w
         self.h = h
+        self.im = None
         self.value = NoteValue.REST
         self.modifers = []  # if this is a note with modifers
 

@@ -12,10 +12,24 @@ from skimage.morphology import watershed
 from scipy import ndimage
 import matplotlib.pyplot as plt
 from vec_noise import pnoise2, snoise2
+from keras.models import load_model
+
 
 def main():
+    model = load_model('./resources/model/keras_model.h5')
+    labels = { 0: "eight_tied",
+1: "trebble",
+2: "time",
+3: "sixteenth_rest",
+4: "half",
+5: "eight_rest",
+6: "eight",
+7: "quarter",
+8: "whole",
+9: "sixteenth",
+10: "barlines"}
 
-    for filename in os.listdir('./sheets/autogen/'):
+    for filename in os.listdir('./sheets/final pieces/'):
         if filename.endswith('.jpg') or filename.endswith('.jepg') or filename.endswith('.png'):
             print(filename)
             if filename == "file-page1.png" or filename == "file-page2.png" or filename == "file-page3.png" or \
@@ -27,7 +41,7 @@ def main():
             # freq = 3.0 * octaves
             # persistence = 0.3
             # lacunarity = 0.9
-            img = cv2.imread(os.path.join('./sheets/autogen/',filename), 0)
+            img = cv2.imread(os.path.join('./sheets/final pieces/',filename), 0)
             top = int(0.4 * img.shape[0])  # shape[0] = rows
             bottom = top
             left = int(0.4 * img.shape[1])  # shape[1] = cols
@@ -47,15 +61,19 @@ def main():
             # noise = noise / np.max(noise) * 255
             # noise = noise.astype(np.uint8)
             # noise = add_noise(img)
-            deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
-            noise = add_noise(deformed)
-            cv2.imwrite('./sheets/tmp/{}_noise.png'.format(filename[:-4]),noise)
-            segmenter = Segmenter(os.path.join('./sheets/autogen/',filename))
+            #deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
+            cv2.imwrite('./sheets/tmp/{}_noise.png'.format(filename[:-4]), img)
+            segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
             img = segmenter.remove_staff_lines()
             cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
-            segmenter = Segmenter(os.path.join('./sheets/tmp/', '{}_noise.png'.format(filename[:-4])))
-            img = segmenter.remove_staff_lines()
-            cv2.imwrite('./tests/output/{}_noise_removed.png'.format(filename[:-4]), img)
+            segmenter.getSymbols(merge_overlap=True)
+            symbols = segmenter.symbols
+            symImgs = [np.expand_dims(x.im, axis=3) for x in symbols]
+            y = model.predict_classes(np.asarray(symImgs), batch_size=len(symImgs), verbose=1)
+            print(y)
+            for i in range(len(y)):
+                cv2.imwrite('./tests/output/{}_{}_{}.png'.format(filename[:-4], labels[y[i]], i),symImgs[i])
+
     return
 
     def nothing(x):
