@@ -12,7 +12,7 @@ class MusicGenerator:
                   "c'", "d'", "e'", "f'", "g'", "a'", "b'", "r"]
 
     # time range for each note
-    time_range = [1., 1./2, 1./4, 1./8]
+    time_range = [1, 2, 4, 8]
 
     def __init__(self, options=None):
         """
@@ -31,6 +31,57 @@ class MusicGenerator:
         time_weights = np.array(time_weights)
         self.note_weights = note_weights.astype(float) / np.sum(note_weights)
         self.time_weights = time_weights.astype(float) / np.sum(time_weights)
+
+    def tinynotation_v2(self, n_bars=10, per_measure=None):
+        """Generates tinyNotation music string. Assumes x/4 time signature.
+
+        n_bars: how many bars of music to generate
+
+        """
+        # top number in time signature
+        per_measure_range = [2, 3, 4]
+        if per_measure is None:
+            per_measure = np.random.choice(per_measure_range)
+        full_length = {2: 0.5, 3: 0.75, 4: 1}
+
+        def generate_bar():
+            bar = ""
+            bar_length = 0.
+            total_bar_len = full_length[per_measure]
+            init_note = np.random.choice(self.note_range, p=self.note_weights)
+            note_idx = self.note_range.index(init_note)
+            while True:  # pick length that fits in bar
+                init_length = np.random.choice(self.time_range, p=self.time_weights)
+                new_len = (bar_length + 1 / init_length)
+                if new_len <= total_bar_len:
+                    break
+            bar += "{}{} ".format(init_note, init_length)
+            bar_length += 1/init_length
+            while bar_length < full_length[per_measure]:
+                new_note_idx = np.random.normal(loc=note_idx,scale=3)
+                if new_note_idx < 0:
+                    new_note_idx *= -1
+                while new_note_idx >= len(self.note_range):
+                    new_note_idx -= (new_note_idx-len(self.note_range))*2 # reflect back
+                if new_note_idx < 0:
+                    new_note_idx = 0
+                if new_note_idx >= len(self.note_range):
+                    new_note_idx = len(self.note_range)-1
+                note_idx = new_note_idx
+                note = self.note_range[int(note_idx)]
+                while True: # pick length that fits in bar
+                    length = np.random.choice(self.time_range, p=self.time_weights)
+                    new_len = (bar_length + 1 / length)
+                    if new_len <= total_bar_len:
+                        break
+                bar += "{}{} ".format(note, length)
+                bar_length += 1 / length
+
+            return bar
+
+        string = " ".join([generate_bar() for _ in range(n_bars)])
+
+        return str(per_measure) + "/" + str(self.per_beat) + " " + string
 
     def tinynotation(self, n_bars=10):
         """Generates tinyNotation music string. Assumes x/4 time signature.
@@ -89,7 +140,7 @@ def gen_pieces(n):
         options["time_weights"] = time_weights
 
         generator = MusicGenerator(options=options)
-        musc = generator.tinynotation()
+        musc = generator.tinynotation(n_bars=2000)
 
         print(musc)
         stream = converter.parse("tinynotation: " + musc)
@@ -103,7 +154,7 @@ def gen_pieces(n):
 
 
 if __name__ == "__main__":
-    gen_pieces(20)
+    # gen_pieces(1)
     note_weights = [1] * len(MusicGenerator.note_range)
     note_weights[0] = 1
 
@@ -114,7 +165,7 @@ if __name__ == "__main__":
     options["time_weights"] = time_weights
 
     generator = MusicGenerator(options=options)
-    musc = generator.tinynotation()
+    musc = generator.tinynotation_v2(n_bars=8000, per_measure=4)
 
     print(musc)
     stream = converter.parse("tinynotation: " + musc)

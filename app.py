@@ -1,9 +1,7 @@
 import argparse
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 app = Flask(__name__)
 # TODO: do we really need CORS?
-CORS(app)
 
 
 @app.route("/")

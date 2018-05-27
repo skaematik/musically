@@ -43,11 +43,11 @@ class Symbol:
         modifers list:      list of the ids of any symbols that modifer this symbols value
         """
 
-    def __init__(self, type, x, y, w, h):
+    def __init__(self, type, x, y, w, h,line_number):
         self.type = type  # type SymbolType
         self.symbol_order = 0  # not sure how to set this
         self.bar_num = 0        # For modifers that last the whole bar
-        self.line_num = 0
+        self.line_num = line_number
         self.x = x
         self.y = y
         self.w = w

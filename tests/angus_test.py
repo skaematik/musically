@@ -14,67 +14,62 @@ import matplotlib.pyplot as plt
 from vec_noise import pnoise2, snoise2
 from keras.models import load_model
 
+from xml_labeler import Xml_labeler
+
 
 def main():
-    model = load_model('./resources/model/keras_model.h5')
-    labels = { 
-        0: "eight_tied",
+    model = load_model('./resources/model/keras_modelv2.h5')
+    labels = {
+        0: "half",
         1: "trebble",
         2: "time",
-        3: "sixteenth_rest",
-        4: "half",
-        5: "eight_rest",
-        6: "eight",
-        7: "quarter",
-        8: "whole",
-        9: "sixteenth",
-        10: "barlines"
+        3: "eight",
+        4: "eight_rest",
+        5: "quarter",
+        6: "barlines",
+        7: "sixteenth",
+        8: "sixteenth_rest",
+        9: "whole",
+        10: "eight_tied",
     }
-
-    for filename in os.listdir('./sheets/final pieces/'):
+    picture_filenames = []
+    files= sorted(os.listdir('./sheets/final pieces/'))
+    for filename in files:
         if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
             print(filename)
-            if filename == "file-page1.png" or filename == "file-page2.png" or filename == "file-page3.png" or \
-                    filename[:-4].endswith("noise"):
-                continue
 
-            # octaves = 20
-            # dark_fac = 40
-            # freq = 3.0 * octaves
-            # persistence = 0.3
-            # lacunarity = 0.9
             img = cv2.imread(os.path.join('./sheets/final pieces/',filename), 0)
-            top = int(0.4 * img.shape[0])  # shape[0] = rows
-            bottom = top
-            left = int(0.4 * img.shape[1])  # shape[1] = cols
-            right = left
+            top = int(0.1 * img.shape[0])  # shape[0] = rows
             img = cv2.copyMakeBorder(img, top, top, top, top, cv2.BORDER_CONSTANT, None, 255)
 
-            # noise = np.zeros(img.shape)
-            # noisey_img = noisy('gauss', img)
-            # for y in range(img.shape[0]):
-            #     for x in range(img.shape[1]):
-            #         noise[y,x] = (int((snoise2(x / freq, y / freq,
-            #                                         octaves,
-            #                                         persistence=persistence,
-            #                                         lacunarity=lacunarity) + 1) * dark_fac))
-            # noise[(img < 30)] = 0
-            # noise = img.astype(np.float64) - noise
-            # noise = noise / np.max(noise) * 255
-            # noise = noise.astype(np.uint8)
-            # noise = add_noise(img)
             #deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
             cv2.imwrite('./sheets/tmp/{}_noise.png'.format(filename[:-4]), img)
-            segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
-            img = segmenter.remove_staff_lines()
-            cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
-            segmenter.getSymbols(merge_overlap=True)
-            symbols = segmenter.symbols
-            symImgs = [np.expand_dims(x.im, axis=3) for x in symbols]
-            y = model.predict_classes(np.asarray(symImgs), batch_size=len(symImgs), verbose=1)
-            print(y)
-            for i in range(len(y)):
-                cv2.imwrite('./tests/output/{}_{}_{}.png'.format(filename[:-4], labels[y[i]], i),symImgs[i])
+            picture_filenames.append('./sheets/tmp/{}_noise.png'.format(filename[:-4]))
+    xml_labeler = Xml_labeler(
+        picture_filenames=picture_filenames,
+        xml_filename=os.path.join('./sheets/final pieces/','auto_gen_large.mscx'),
+        output_path='./tests/output/')
+    xml_labeler.label_symbols(edit_last=True)
+    xml_labeler.save_symbols()
+
+
+
+
+
+            # segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
+            # img = segmenter.remove_staff_lines()
+            # cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
+            # segmenter.getSymbols(merge_overlap=True)
+            # symbols = segmenter.symbols
+            # for i in range(len(symbols)):
+            #     cv2.imwrite('./tests/output/{}_{}.png'.format(filename[:-4], i), symbols[i].im)
+            #
+
+            # symImgs = [np.expand_dims(x.im, axis=3) for x in symbols]
+            # y = model.predict_classes(np.asarray(symImgs), batch_size=len(symImgs), verbose=1)
+            # print(y)
+            # for i in range(len(y)):
+            #     cv2.imwrite('./tests/output/{}_{}_{}.png'.format(filename[:-4], labels[y[i]], i),symImgs[i])
 
     return
 

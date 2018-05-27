@@ -41,6 +41,7 @@ class Segmenter:
         self.staff_removed = None
         self.staff_lines = None
         self.symbols = None
+        self.filename = filename
 
     def calculate_staff_values(self):
         """Calculates the staff_width and staff height
@@ -306,10 +307,13 @@ class Segmenter:
         returns: saves list of Symbols, returns rgb image with bounding boxes drawn
         """
         im = inv(self.staff_removed)
+        im = cv2.dilate(im, np.ones((5,5)))
         def boxes2symbols(boxes):
             symbols = []
             for x, y, w, h in boxes:
-                symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h))
+                line_num = self.get_line_number(x, y, w, h)
+                if line_num != -1:
+                    symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h, line_num))
             return symbols
 
         def draw(im, boxes):
@@ -351,7 +355,11 @@ class Segmenter:
                 boxes.append((x, y, w, h))
 
         _, contours, _ = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        boxes = [cv2.boundingRect(c) for c in contours]
+        new_c = []
+        for c in contours:
+            if cv2.contourArea(c) > 100:
+                new_c.append(c)
+        boxes = [cv2.boundingRect(c) for c in new_c]
 
         colour = np.dstack((im, im, im))
 
@@ -361,10 +369,33 @@ class Segmenter:
         draw(colour, boxes);
 
         symbols = boxes2symbols(boxes)
-        symbols.sort(key=lambda sym: sym.w*sym.h)
+        line_len = self.bin_img.shape[1]
+        symbols = sorted(symbols, key=lambda sym: sym.line_num*line_len+sym.x)
         self.symbols = symbols
         self.add_in_pictures()
         return colour
+
+    def get_line_number(self, x,y,w,h):
+        """ get closest line for a y co-ordinate
+        x needed as staff lines may not be straight, -1 if not on a line, lines start from 0"""
+        staff_black, staff_white = self.calculate_staff_values()
+        staff_lines, _ = self.get_staff_lines_from_seeds()
+        lines = []
+        current_line = -1
+        prev_y_val = 0
+        for line in staff_lines:
+            lines.append(sorted(line, key=itemgetter(0)))
+        lines = sorted(lines, key=lambda line: line[len(line)//2][1])
+        for line in lines:
+            if (line[len(line)//2][1] - prev_y_val) > staff_white *2:
+                current_line += 1
+            prev_y_val = line[len(line) // 2][1]
+            if y-staff_white < prev_y_val < (y + h+staff_white):
+                return current_line
+            if prev_y_val > y+staff_white*20: # give up
+                return -1
+        return -1
+
 
     def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=150):
         """
@@ -419,3 +450,26 @@ class Segmenter:
                         cv2.imwrite(os.path.join(path, format.format(count)), dirty(im))
                         count += 1
             count += 1
+
+    def blockout_markings(self):
+        # page_num
+        for y in range(3600,3700):
+            for x in range (2500,2800):
+                self.grey_img[y,x] = 255
+                self.bin_img[y, x] = 255
+        for y in range(3550, 3750):
+            for x in range(300, 800):
+                self.grey_img[y, x] = 255
+                self.bin_img[y, x] = 255
+        line_nums = [185, 465, 740, 1020, 1300, 1575, 1855, 2135, 2410, 2690, 2968]
+        for line in line_nums:
+            line+=350
+            for y in range(line, line+35):
+                for x in range(400, 515):
+                    self.grey_img[y, x] = 255
+                    self.bin_img[y, x] = 255
+
+
+
+    def save_to_file(self):
+
