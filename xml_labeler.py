@@ -20,7 +20,7 @@ class Xml_labeler:
         self.output_path = output_path
         self.matched_pairs = []
 
-    def label_symbols(self, min_x_pos=500, edit_last=False):
+    def label_symbols(self, min_x_pos=500, edit_last=False, dont_use_cache=False):
         measures = self.xmldoc.getElementsByTagName('Measure')
         xml_objects = []
         while len(measures) is not 0:
@@ -42,22 +42,23 @@ class Xml_labeler:
             xml_objects.append(('barline', current_measure_number))
         first_pic = True
         for filename in self.picture_filenames:
-            segmenter = Segmenter(filename)
-            if not first_pic:
-                if edit_last or filename != self.picture_filenames[-1]:
-                    segmenter.blockout_markings()
-            segmenter.remove_staff_lines()
-            segmenter.getSymbols(True)
+            segmenter = Segmenter.load_segmenter_from_file(filename)
+            if (segmenter is None) or dont_use_cache:
+                segmenter = Segmenter(filename)
+                if not first_pic:
+                    if edit_last or filename != self.picture_filenames[-1]:
+                        segmenter.blockout_markings()
+                segmenter.remove_staff_lines()
+                segmenter.getSymbols(True)
+                segmenter.save_to_file()
             symbols = segmenter.symbols
-            # print("\n".join(xml_objects))
-            save = False
             i = -1
             saveCount = 0
             while len(symbols) != 0:
                 i += 1
                 saveCount = saveCount - 1 if saveCount > 0 else 0
                 if not is_barline(symbols[0]) and xml_objects[0][0] == 'barline':
-                    saveCount = 10
+                    saveCount = 0
                     print('error not enough xmls found at bar {} line {} in file {}'.format(self.matched_pairs[-1][0][1],
                                                                                           symbols[0].line_num,
                                                                                           filename[-20:-4]))
@@ -70,7 +71,7 @@ class Xml_labeler:
                         popped = symbols.pop(0)
                     symbols.insert(0, popped)
                 if is_barline(symbols[0]) and xml_objects[0][0] != 'barline':
-                    saveCount = 10
+                    saveCount = 0
                     print('error too many xmls found at bar {} line {} in file {}'.format(self.matched_pairs[-1][0][1],symbols[0].line_num, filename[-20:-4]))
                     # save = True
                     popped = self.matched_pairs.pop()
@@ -117,3 +118,23 @@ class Xml_labeler:
                     os.path.join(
                         self.output_path, name_format.format(self.matched_pairs[i][0], i)),
                     self.matched_pairs[i][1].im)
+
+
+
+def main():
+    picture_filenames = []
+    files= sorted(os.listdir('./sheets/final pieces/'))
+    for filename in files:
+        if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
+            print(filename)
+            picture_filenames.append('./sheets/tmp/{}_noise.png'.format(filename[:-4]))
+    xml_labeler = Xml_labeler(
+        picture_filenames=picture_filenames,
+        xml_filename=os.path.join('./sheets/final pieces/','auto_gen_large.mscx'),
+        output_path='./tests/output/')
+    xml_labeler.label_symbols(edit_last=True)
+    xml_labeler.save_symbols_pictures()
+
+
+if __name__ == "__main__":
+    main()

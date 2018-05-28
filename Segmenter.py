@@ -1,4 +1,6 @@
 import os
+import pickle
+import shutil
 from operator import itemgetter
 import math
 from collections import Counter
@@ -7,6 +9,8 @@ from operator import itemgetter
 import cv2
 
 from utils import *
+
+cache_path = './cached_segmenter'
 
 
 class Segmenter:
@@ -33,13 +37,14 @@ class Segmenter:
             raise FileNotFoundError
         self.col_img = cv2.imread(filename)
         _, self.bin_img = cv2.threshold(
-            self.grey_img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+            self.grey_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         self.bin_img = inv(self.bin_img)
         self.staff_black, self.staff_white = 0, 0
         self.staff_black, self.staff_white = self.calculate_staff_values()
         self.seeds = None
         self.staff_removed = None
         self.staff_lines = None
+        self.grouped_staff_lines = None
         self.symbols = None
         self.filename = filename
 
@@ -239,7 +244,25 @@ class Segmenter:
                     for yy in range(prev_y, prev_y + staff_black):
                         colour_img[yy, prev_x] = np.array([255, 0, 255])
                     prev_x, prev_y = x, y
+        sorted_intra_lines = []
+        for line in staff_lines:
+            sorted_intra_lines.append(sorted(line, key=itemgetter(0)))
+        sorted_lines = sorted(sorted_intra_lines, key=lambda line: line[len(line) // 2][1])
+        grouped_staff_lines = []
+        current_line = 0
+        current_staff = []
+        prev_y_val = 0
+        for line in sorted_lines:
+            if (line[len(line) // 2][1] - prev_y_val) > staff_white * 2:
+                current_line += 1
+                grouped_staff_lines.append(current_staff)
+                current_staff = []
+            prev_y_val = line[len(line) // 2][1]
+            current_staff.append(line)
+        grouped_staff_lines.append(current_staff) # append last line
+        grouped_staff_lines.pop(0) # pop empty line -1
         self.staff_lines = staff_lines
+        self.grouped_staff_lines = grouped_staff_lines
         return staff_lines, colour_img
 
     def remove_staff_lines(self):
@@ -307,13 +330,14 @@ class Segmenter:
         returns: saves list of Symbols, returns rgb image with bounding boxes drawn
         """
         im = inv(self.staff_removed)
-        im = cv2.dilate(im, np.ones((5,5)))
+        im = cv2.dilate(im, np.ones((5, 5)))
+
         def boxes2symbols(boxes):
             symbols = []
             for x, y, w, h in boxes:
                 line_num = self.get_line_number(x, y, w, h)
                 if line_num != -1:
-                    symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h, line_num))
+                    symbols.append(Symbol(SymbolType.UNKNOWN, x, y, w, h, line_num,self.grouped_staff_lines[line_num]))
             return symbols
 
         def draw(im, boxes):
@@ -370,12 +394,12 @@ class Segmenter:
 
         symbols = boxes2symbols(boxes)
         line_len = self.bin_img.shape[1]
-        symbols = sorted(symbols, key=lambda sym: sym.line_num*line_len+sym.x)
+        symbols = sorted(symbols, key=lambda sym: sym.line_num * line_len + sym.x)
         self.symbols = symbols
         self.add_in_pictures()
         return colour
 
-    def get_line_number(self, x,y,w,h):
+    def get_line_number(self, x, y, w, h):
         """ get closest line for a y co-ordinate
         x needed as staff lines may not be straight, -1 if not on a line, lines start from 0"""
         staff_black, staff_white = self.calculate_staff_values()
@@ -385,17 +409,16 @@ class Segmenter:
         prev_y_val = 0
         for line in staff_lines:
             lines.append(sorted(line, key=itemgetter(0)))
-        lines = sorted(lines, key=lambda line: line[len(line)//2][1])
+        lines = sorted(lines, key=lambda line: line[len(line) // 2][1])
         for line in lines:
-            if (line[len(line)//2][1] - prev_y_val) > staff_white *2:
+            if (line[len(line) // 2][1] - prev_y_val) > staff_white * 2:
                 current_line += 1
             prev_y_val = line[len(line) // 2][1]
-            if y-staff_white < prev_y_val < (y + h+staff_white):
+            if y - staff_white < prev_y_val < (y + h + staff_white):
                 return current_line
-            if prev_y_val > y+staff_white*20: # give up
+            if prev_y_val > y + staff_white * 20:  # give up
                 return -1
         return -1
-
 
     def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=150):
         """
@@ -420,31 +443,33 @@ class Segmenter:
                 base_img[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
             im = cv2.resize(im, (o_width, o_width), interpolation=cv2.INTER_CUBIC)
             sym.im = im
+            sym.offsetx = offsetx // scale
+            sym.offsety = offsety // scale
 
-    def saveSymbols(self, format, save_origonal=False, path='./', width=150,reject_ratio=100,min_area=0,reject_path='./', dirty_times=0):
+
+    def saveSymbols(self, format, save_origonal=False, path='./', width=150, reject_ratio=100, min_area=0,
+                    reject_path='./', dirty_times=0):
         base_img = self.grey_img if save_origonal else self.staff_removed
-        count=0
+        count = 0
         o_width = width
         for sym in self.symbols:
             scale = 1
-
             while max(max(sym.w, sym.h), width) != width:
                 width *= 2
                 scale *= 2  # use later
             offsetx = (width - sym.w) // 2
             offsety = (width - sym.h) // 2
-            im = np.ones((width,width),dtype=np.uint8)*255  # white
+            im = np.ones((width, width), dtype=np.uint8) * 255  # white
             im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
-                base_img[sym.y:(sym.y+sym.h), sym.x:(sym.x+sym.w)]
+                base_img[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
             im = cv2.resize(im, (o_width, o_width), interpolation=cv2.INTER_CUBIC)
-
-            if sym.h/sym.w > reject_ratio:
-                cv2.imwrite(os.path.join(reject_path, 'ratio_'+format.format(count)), im)
+            if sym.h / sym.w > reject_ratio:
+                cv2.imwrite(os.path.join(reject_path, 'ratio_' + format.format(count)), im)
             elif sym.w * sym.h < min_area:
-                cv2.imwrite(os.path.join(reject_path, 'size_'+format.format(count)), im)
+                cv2.imwrite(os.path.join(reject_path, 'size_' + format.format(count)), im)
             else:
                 if dirty_times == 0:
-                    cv2.imwrite(os.path.join(path,format.format(count)), im)
+                    cv2.imwrite(os.path.join(path, format.format(count)), im)
                 else:
                     for i in range(dirty_times):
                         cv2.imwrite(os.path.join(path, format.format(count)), dirty(im))
@@ -453,9 +478,9 @@ class Segmenter:
 
     def blockout_markings(self):
         # page_num
-        for y in range(3600,3700):
-            for x in range (2500,2800):
-                self.grey_img[y,x] = 255
+        for y in range(3600, 3700):
+            for x in range(2500, 2800):
+                self.grey_img[y, x] = 255
                 self.bin_img[y, x] = 255
         for y in range(3550, 3750):
             for x in range(300, 800):
@@ -463,13 +488,45 @@ class Segmenter:
                 self.bin_img[y, x] = 255
         line_nums = [185, 465, 740, 1020, 1300, 1575, 1855, 2135, 2410, 2690, 2968]
         for line in line_nums:
-            line+=350
-            for y in range(line, line+35):
+            line += 350
+            for y in range(line, line + 35):
                 for x in range(400, 515):
                     self.grey_img[y, x] = 255
                     self.bin_img[y, x] = 255
 
-
-
     def save_to_file(self):
+        pfilename = os.path.basename(self.filename)
+        pfilename = pfilename[:-4]
+        pfilename += '.pkl'
+        try:
+            os.mkdir(cache_path)
+        except FileExistsError:
+            pass
+        with open(os.path.join(cache_path, pfilename), "wb") as pfile:
+            pickle.dump(self, pfile, pickle.HIGHEST_PROTOCOL)
 
+    @staticmethod
+    def load_segmenter_from_file(filename):
+        pfilename = os.path.basename(filename)
+        pfilename = pfilename[:-4]
+        pfilename += '.pkl'
+        path = os.path.join(cache_path, pfilename)
+        try:
+            with open(path, "rb") as f:
+                dump = pickle.load(f)
+                return dump
+        except FileNotFoundError:
+            return None
+
+    @staticmethod
+    def symbols_from_File(filename, use_cache=True):
+        segmenter = None
+        if use_cache:
+            segmenter = Segmenter.load_segmenter_from_file(filename)
+        if segmenter is not None:
+            return segmenter.symbols, segmenter
+        segmenter = Segmenter(filename)
+        segmenter.remove_staff_lines()
+        segmenter.getSymbols(True)
+        segmenter.save_to_file()
+        return segmenter.symbols, segmenter

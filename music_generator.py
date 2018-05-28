@@ -165,7 +165,7 @@ if __name__ == "__main__":
     options["time_weights"] = time_weights
 
     generator = MusicGenerator(options=options)
-    musc = generator.tinynotation_v2(n_bars=8000, per_measure=4)
+    musc = generator.tinynotation_v2(n_bars=20, per_measure=4)
 
     print(musc)
     stream = converter.parse("tinynotation: " + musc)

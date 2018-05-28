@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import sys
 from Segmenter import Segmenter
+from Song import Song
+from classifier import Classifier
 from utils import *
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
@@ -18,45 +20,32 @@ from xml_labeler import Xml_labeler
 
 
 def main():
-    model = load_model('./resources/model/keras_modelv2.h5')
-    labels = {
-        0: "half",
-        1: "trebble",
-        2: "time",
-        3: "eight",
-        4: "eight_rest",
-        5: "quarter",
-        6: "barlines",
-        7: "sixteenth",
-        8: "sixteenth_rest",
-        9: "whole",
-        10: "eight_tied",
-    }
-    picture_filenames = []
+    classifier = Classifier()
     files= sorted(os.listdir('./sheets/final pieces/'))
     for filename in files:
         if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
             print(filename)
-
+    #
             img = cv2.imread(os.path.join('./sheets/final pieces/',filename), 0)
             top = int(0.1 * img.shape[0])  # shape[0] = rows
             img = cv2.copyMakeBorder(img, top, top, top, top, cv2.BORDER_CONSTANT, None, 255)
 
             #deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
-            cv2.imwrite('./sheets/tmp/{}_noise.png'.format(filename[:-4]), img)
-            picture_filenames.append('./sheets/tmp/{}_noise.png'.format(filename[:-4]))
-    xml_labeler = Xml_labeler(
-        picture_filenames=picture_filenames,
-        xml_filename=os.path.join('./sheets/final pieces/','auto_gen_large.mscx'),
-        output_path='./tests/output/')
-    xml_labeler.label_symbols(edit_last=True)
-    xml_labeler.save_symbols()
+            cv2.imwrite('./sheets/tmp/{}_white.png'.format(filename[:-4]), img)
+
+            symbols, seg = Segmenter.symbols_from_File('./sheets/tmp/{}_white.png'.format(filename[:-4]),use_cache=False)
+            y = classifier.predict_symbols(symbols,use_class_numbers=True)
+            for i in range(len(y)):
+                symbols[i].work_out_type(y[i])
+                cv2.imwrite('./tests/output/classifer/{}_{}_{}.png'.format(filename[:-4], symbols[i].get_name(), i), symbols[i].im)
+            cv2.imwrite('./tests/output/classifer/{}__boxed.png'.format(filename[:-4]), seg.getSymbols(True))
+
+            song = Song()
+            song.add_symbols(symbols)
+            song.parse_symbols()
 
 
-
-
-
-            # segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
+        # segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
             # img = segmenter.remove_staff_lines()
             # cv2.imwrite('./tests/output/{}_removed.png'.format(filename[:-4]), img)
             # segmenter.getSymbols(merge_overlap=True)

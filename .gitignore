@@ -1,4 +1,5 @@
 venv/
+resources/model/
 .idea/
 bin/
 .ipynb_checkpoints/
@@ -7,4 +8,6 @@ bin/
 *.pyc
 tests/output/
 sheets/training/
+sheets/tmp
+cached_segmenter/
 .vscode
