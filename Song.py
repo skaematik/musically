@@ -4,22 +4,12 @@ from typing import List, Any
 
 from music21 import *
 
-from Symbol import Symbol, SymbolType
-
-duration_len = {
-    'eighth': 0.5,
-    'half': 2.0,
-    'quarter': 1.0,
-    'rest_eighth': 0.5,
-    'rest_measure': 2.0,
-    'rest_quarter': 1.0,
-    'tied_eighth': 1,
-    'whole': 4}
+from Symbol import Symbol, SymbolType, SymbolType_Duration
 
 
 def get_duration_from_name(name):
     d = duration.Duration()
-    d.quarterLength = duration_len[name]
+    d.quarterLength = SymbolType_Duration[name]
     return d
 
 
@@ -43,9 +33,7 @@ treble_values = {
     12: 'C6'
 }
 
-
 def to_pitchStr_treble(amount):
-    print('note {} value {}'.format(treble_values[amount], amount))
     return treble_values[amount]
 
 
@@ -70,7 +58,22 @@ class Song:
                 tem = cv2.imread('./resources/templates/'+name, 0)
                 templates.append((tem, name))
 
+        bar_length = 0
         for sym in self.symbols:
+            if sym.is_bar():
+                if bar_length < 4:
+                    need = 4 - bar_length
+                    d = duration.Duration()
+                    d.quarterLength = need
+                    rest = note.Rest(duration=d)
+                    self.stream.append(rest)
+                if bar_length > 4:
+                    need = bar_length - 4
+                    d = duration.Duration()
+                    d.quarterLength = need
+                    rest = note.Rest(duration=d)
+                    self.stream.append(rest)
+                bar_length = 0
             if sym.is_part_of_key_sig():
                 if sym.get_type() == SymbolType.CLEF:
                     pass
@@ -78,17 +81,23 @@ class Song:
                     pass
             if sym.is_note():
                 if sym.get_type() == SymbolType.TIED_EIGHTH:
-                    n1 = note.Note(pitchName='C4', duration=get_duration_from_name('eighth'))
-                    n2 = note.Note(pitchName='C4', duration=get_duration_from_name('eighth'))
-                    n1.beams.fill('eighth', type='start')
-                    n2.beams.fill('eighth', type='stop')
-                    self.stream.append(n1)
-                    self.stream.append(n2)
+                    beam_notes = sym.determine_beamed_pitch([t for t in filter(lambda t: t[1] == 'full.png', templates)])
+                    for n_p in beam_notes:
+                        pitch_str = to_pitchStr_treble(n_p)
+                        n = note.Note(pitchName=pitch_str, duration=get_duration_from_name('eighth'))
+                        bar_length += 0.5
+                        self.stream.append(n)
+                        # Music21 will decided a nice beaming scheme for us
                 else:
                     pitch_str = to_pitchStr_treble(sym.determine_pitch(templates))
-                    n = note.Note(pitchName=pitch_str, duration=get_duration_from_name(sym.get_name()))
+                    d = get_duration_from_name(sym.get_name())
+                    bar_length += d.quarterLength
+                    n = note.Note(pitchName=pitch_str, duration=d)
                     self.stream.append(n)
             if sym.is_rest():
-                n = note.Rest(duration=get_duration_from_name(sym.get_name()))
+                d = get_duration_from_name(sym.get_name())
+                bar_length += d.quarterLength
+                n = note.Rest(duration=d)
                 self.stream.append(n)
-        self.stream.show()
+
+

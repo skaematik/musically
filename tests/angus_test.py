@@ -43,7 +43,7 @@ def main():
             song = Song()
             song.add_symbols(symbols)
             song.parse_symbols()
-
+            song.stream.show()
 
         # segmenter = Segmenter(os.path.join('./sheets/tmp/','{}_noise.png'.format(filename[:-4])))
             # img = segmenter.remove_staff_lines()
