@@ -65,6 +65,8 @@ class Symbol:
         self.im = None
         self.offsetx = 0
         self.offsety = 0
+        self.staff_white = 0
+        self.staff_black = 0
         self.staff_lines = staff_lines
         self.value = NoteValue.REST
         self.modifers = []  # if this is a note with modifers
@@ -87,10 +89,36 @@ class Symbol:
             (minV, maxV, minLoc, maxLoc) = cv2.minMaxLoc(match)
             results.append((maxLoc, maxV, tem_tup[1], tem_tup[0].shape))
         results = sorted(results, key=itemgetter(1))
-        print(results[-1])
-        middle = self.y+results[-1][0][1]-self.offsety + results[-1][3][1] #last one maybe wrong?
-        print(middle)
-
+        # print(results[-1])
+        middle = self.y+((results[-1][0][1]*2)-self.offsety) + results[-1][3][0] #last one maybe wrong?
+        x_idx = -1
+        for i in range(len(self.staff_lines[0])):
+            if self.staff_lines[0][i][0] > self.x:
+                x_idx = i
+                break
+        if middle > self.staff_lines[4][x_idx][1]:  # Below the final line
+            amount_below = middle - self.staff_lines[4][x_idx][1]
+            amount_below = amount_below / self.staff_white
+            amount = round(amount_below * 2.0) / 2.0
+            print('below: {}'.format(amount))
+            amount = - (amount*2)
+        elif middle < self.staff_lines[0][x_idx][1]:  # above first line
+            amount_above = self.staff_lines[0][x_idx][1] - middle
+            amount_above = amount_above / self.staff_white
+            amount = round(amount_above * 2.0) / 2.0
+            print('above: {}'.format(amount))
+            amount = amount*2 + 8
+        else:
+            amount_above_below = self.staff_lines[2][x_idx][1] - middle
+            amount_above_below = amount_above_below / self.staff_white
+            amount = round(amount_above_below * 2.0) / 2.0
+            print('between: {}'.format(amount))
+            amount = amount * 2 + 4
+        print('amount: {}'.format(amount))
+        return amount
+        # check above
+            # how above
+        # where check inside
         return
 
 

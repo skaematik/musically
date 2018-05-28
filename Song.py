@@ -23,6 +23,32 @@ def get_duration_from_name(name):
     return d
 
 
+treble_values = {
+    -4: 'A3',
+    -3: 'B3',
+    -2: 'C4',
+    -1: 'D4',
+    0: 'E4',  # Bottom line
+    1: 'F4',
+    2: 'G4',
+    3: 'A4',
+    4: 'B4',
+    5: 'C5',
+    6: 'D5',
+    7: 'E5',
+    8: 'F5',  # Top line
+    9: 'G5',
+    10: 'A5',
+    11: 'B5',
+    12: 'C6'
+}
+
+
+def to_pitchStr_treble(amount):
+    print('note {} value {}'.format(treble_values[amount], amount))
+    return treble_values[amount]
+
+
 class Song:
     """ Collection of symbols making up a song, could be over multiple pages"""
     symbols: List[Symbol]
@@ -51,7 +77,6 @@ class Song:
                 if sym.get_type() == SymbolType.TIMESIG:
                     pass
             if sym.is_note():
-                sym.determine_pitch(templates)
                 if sym.get_type() == SymbolType.TIED_EIGHTH:
                     n1 = note.Note(pitchName='C4', duration=get_duration_from_name('eighth'))
                     n2 = note.Note(pitchName='C4', duration=get_duration_from_name('eighth'))
@@ -60,7 +85,8 @@ class Song:
                     self.stream.append(n1)
                     self.stream.append(n2)
                 else:
-                    n = note.Note(pitchName='C4', duration=get_duration_from_name(sym.get_name()))
+                    pitch_str = to_pitchStr_treble(sym.determine_pitch(templates))
+                    n = note.Note(pitchName=pitch_str, duration=get_duration_from_name(sym.get_name()))
                     self.stream.append(n)
             if sym.is_rest():
                 n = note.Rest(duration=get_duration_from_name(sym.get_name()))

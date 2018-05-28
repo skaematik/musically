@@ -33,7 +33,7 @@ def main():
             #deformed = elastic_transform(img, img.shape[1] * 2, img.shape[1] * 0.1)
             cv2.imwrite('./sheets/tmp/{}_white.png'.format(filename[:-4]), img)
 
-            symbols, seg = Segmenter.symbols_from_File('./sheets/tmp/{}_white.png'.format(filename[:-4]),use_cache=False)
+            symbols, seg = Segmenter.symbols_from_File('./sheets/tmp/{}_white.png'.format(filename[:-4]), use_cache=True)
             y = classifier.predict_symbols(symbols,use_class_numbers=True)
             for i in range(len(y)):
                 symbols[i].work_out_type(y[i])

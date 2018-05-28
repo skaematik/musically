@@ -420,7 +420,7 @@ class Segmenter:
                 return -1
         return -1
 
-    def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=150):
+    def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=300, final_width=150):
         """
         adds images into symbol objects. none fixed width does not work yet
         :param from_staff_removed:
@@ -432,7 +432,7 @@ class Segmenter:
         o_width = width
         for sym in self.symbols:
             scale = 1
-
+            width = o_width
             while max(max(sym.w, sym.h), width) != width:
                 width *= 2
                 scale *= 2  # use later
@@ -441,10 +441,14 @@ class Segmenter:
             im = np.ones((width, width), dtype=np.uint8) * 255  # white
             im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
                 base_img[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
-            im = cv2.resize(im, (o_width, o_width), interpolation=cv2.INTER_CUBIC)
+            im = cv2.resize(im, (final_width, final_width), interpolation=cv2.INTER_CUBIC)
             sym.im = im
-            sym.offsetx = offsetx // scale
-            sym.offsety = offsety // scale
+            sym.offsetx = offsetx
+            sym.offsety = offsety
+            sym.scale = scale
+            sym.staff_white = self.staff_white
+            sym.staff_black = self.staff_black
+
 
 
     def saveSymbols(self, format, save_origonal=False, path='./', width=150, reject_ratio=100, min_area=0,
