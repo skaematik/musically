@@ -6,15 +6,21 @@ import numpy as np
 from enum import Enum
 
 
-
 class NoteValue(Enum):
     UNKNOWN = 0
     REST = 1
     # whatever the music21/midi format needs? ( havent looked this up)
     A3 = 440
 
+
+SymbolType_Names = ['barline', 'clef', 'eighth', 'half', 'quarter', 'rest_eighth', 'rest_measure', 'rest_quarter',
+                    'tied_eighth', 'timeSig', 'whole']
+
+SymbolType_Duration = {'eighth': 0.5, 'half': 2, 'quarter': 1, 'rest_eighth': 0.5, 'rest_measure': 4, 'rest_quarter': 1,
+                       'tied_eighth': 1, 'whole': 4}
+
+
 class SymbolType(Enum):
-    names_ = ['barline', 'clef', 'eighth', 'half', 'quarter', 'rest_eighth', 'rest_measure', 'rest_quarter', 'tied_eighth', 'timeSig', 'whole']
     UNKNOWN = -1
     BARLINE = 0
     CLEF = 1
@@ -22,14 +28,14 @@ class SymbolType(Enum):
     HALF = 3
     QUARTER = 4
     REST_EIGHTH = 5
-    REST_MEASURE = 6 #could also be half
+    REST_MEASURE = 6  # could also be half
     REST_QUARTER = 7
     TIED_EIGHTH = 8
     TIMESIG = 9
     WHOLE = 10
-    #future?
+    # future?
     BASS = 11
-    NATURAL =12
+    NATURAL = 12
     FLAT = 14
     SHARP = 15
     SEMIQUAVER = 16
@@ -53,10 +59,10 @@ class Symbol:
         modifers list:      list of the ids of any symbols that modifer this symbols value
         """
 
-    def __init__(self, type, x, y, w, h,line_number, staff_lines=[]):
+    def __init__(self, type, x, y, w, h, line_number, staff_lines=[]):
         self.type = type  # type SymbolType
         self.symbol_order = 0  # not sure how to set this
-        self.bar_num = 0        # For modifers that last the whole bar
+        self.bar_num = 0  # For modifers that last the whole bar
         self.line_num = line_number
         self.x = x
         self.y = y
@@ -65,11 +71,13 @@ class Symbol:
         self.im = None
         self.offsetx = 0
         self.offsety = 0
+        self.staff_white = 0
+        self.staff_black = 0
         self.staff_lines = staff_lines
         self.value = NoteValue.REST
         self.modifers = []  # if this is a note with modifers
 
-    def work_out_type(self,label_id):
+    def work_out_type(self, label_id):
         self.type = SymbolType(label_id)
 
     def get_type(self):
@@ -77,28 +85,53 @@ class Symbol:
 
     def get_name(self):
         if 0 <= self.type.value <= 10:
-            return SymbolType.names_.value[self.type.value]
+            return SymbolType_Names[self.type.value]
         return 'UNKNOWN'
 
-    def determine_pitch(self, templates):
+    def determine_pitch(self, templates, also_return_offsets=False, image=None):
+        """ determines pitch of note, and x_offset at which it occurs"""
+        if image is None:
+            image = self.im
+
         results = []
         for tem_tup in templates:
-            match = cv2.matchTemplate(self.im,tem_tup[0], method=cv2.TM_CCOEFF)
+            match = cv2.matchTemplate(image, tem_tup[0], method=cv2.TM_CCOEFF)
             (minV, maxV, minLoc, maxLoc) = cv2.minMaxLoc(match)
             results.append((maxLoc, maxV, tem_tup[1], tem_tup[0].shape))
         results = sorted(results, key=itemgetter(1))
-        print(results[-1])
-        middle = self.y+results[-1][0][1]-self.offsety + results[-1][3][1] #last one maybe wrong?
-        print(middle)
+        # print(results[-1])
+        middle = self.y + ((results[-1][0][1] * 2) - self.offsety) + results[-1][3][0]
+        x_offset = self.x + ((results[-1][0][0] * 2) - self.offsetx) + results[-1][3][1]
 
-        return
-
+        x_idx = -1  # Find where in line the note is
+        for i in range(len(self.staff_lines[0])):
+            if self.staff_lines[0][i][0] > self.x:
+                x_idx = i
+                break
+        if middle > self.staff_lines[4][x_idx][1]:  # Below the final line
+            amount_below = middle - self.staff_lines[4][x_idx][1]
+            amount_below = amount_below / self.staff_white
+            amount = round(amount_below * 2.0) / 2.0
+            amount = - (amount * 2)
+        elif middle < self.staff_lines[0][x_idx][1]:  # above first line
+            amount_above = self.staff_lines[0][x_idx][1] - middle
+            amount_above = amount_above / self.staff_white
+            amount = round(amount_above * 2.0) / 2.0
+            amount = amount * 2 + 8
+        else:
+            amount_above_below = self.staff_lines[2][x_idx][1] - middle
+            amount_above_below = amount_above_below / self.staff_white
+            amount = round(amount_above_below * 2.0) / 2.0
+            amount = amount * 2 + 4
+        if also_return_offsets:
+            return amount, results[-1][0], results[-1][3], results[-1][1]
+        return amount
 
     def is_note(self):
-        return (self.type == SymbolType.EIGHTH) or\
-               (self.type == SymbolType.HALF) or\
-               (self.type == SymbolType.QUARTER) or\
-               (self.type == SymbolType.TIED_EIGHTH) or\
+        return (self.type == SymbolType.EIGHTH) or \
+               (self.type == SymbolType.HALF) or \
+               (self.type == SymbolType.QUARTER) or \
+               (self.type == SymbolType.TIED_EIGHTH) or \
                (self.type == SymbolType.WHOLE)
 
     def is_rest(self):
@@ -113,9 +146,26 @@ class Symbol:
         return False
 
     def is_part_of_key_sig(self):
-        return (self.type == SymbolType.CLEF) or\
-               (self.type == SymbolType.BASS) or\
-               (self.type == SymbolType.SHARP) or\
-               (self.type == SymbolType.FLAT) or\
-               (self.type == SymbolType.NATURAL) or\
+        return (self.type == SymbolType.CLEF) or \
+               (self.type == SymbolType.BASS) or \
+               (self.type == SymbolType.SHARP) or \
+               (self.type == SymbolType.FLAT) or \
+               (self.type == SymbolType.NATURAL) or \
                (self.type == SymbolType.TIMESIG)  # im not sure about this one being a good idea
+
+    def determine_beamed_pitch(self, templates):
+        if self.type != SymbolType.TIED_EIGHTH:
+            return []
+        image = np.array(self.im)
+
+        note, location, size, best_max = self.determine_pitch(templates, also_return_offsets=True, image=image)
+        value = best_max
+        image[location[1]:(location[1] + size[1]), location[0]:(location[0] + size[0])] = 255
+        result = [(note, location[0])]
+        while value / best_max > 0.9:
+            note, location, size, value = self.determine_pitch(templates, also_return_offsets=True, image=image)
+            if value / best_max < 0.9:
+                break
+            image[location[1]:(location[1] + size[1]), location[0]:(location[0] + size[0])] = 255
+            result.append((note, location[0]))
+        return [n[0] for n in sorted(result, key=itemgetter(1))]
