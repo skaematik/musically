@@ -13,3 +13,5 @@ cached_segmenter/
 .vscode
 uploads/
 client/src/App.css
+client/dist
+client/yarn.lock
