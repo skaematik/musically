@@ -10,3 +10,4 @@ Flask==0.12.2
 Flask-cors==3.0.4
 keras==2.1.6
 tensorflow==1.8.0
+flask-dropzone==1.4.3

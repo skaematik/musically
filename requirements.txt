@@ -3,3 +3,5 @@ opencv-python==3.4.0.14
 opencv-contrib-python==3.4.0.14
 numpy==1.14.2
 vec_noise==1.1.4
+Flask==0.12.2
+flask-dropzone==1.4.3
