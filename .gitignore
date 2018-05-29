@@ -11,3 +11,5 @@ sheets/training/
 sheets/tmp
 cached_segmenter/
 .vscode
+uploads/
+client/src/App.css
