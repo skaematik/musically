@@ -22,7 +22,23 @@ class App extends Component {
     event.preventDefault();
     let spacing = 2;
     axios.get(settings.server_url)
-      .then(response => console.log('A response was received: ', JSON.stringify(response, null, spacing)))
+      .then(response => {
+        console.log(response);
+        console.log(JSON.parse(response.data.to_be_sent));
+        console.log('A response was received: ', JSON.stringify(response, null, spacing));
+      }
+    );
+  }
+
+  componentDidMount() {
+    let osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay("osmd");
+    // let xml = "http://downloads2.makemusic.com/musicxml/MozaVeilSample.xml";
+    let xml = "MozaVeilSample.xml";
+    osmd.load(xml).then(
+      function () {
+        osmd.render();
+      }
+    );
   }
 
   render() {
@@ -43,6 +59,10 @@ class App extends Component {
           <p />
           <input type="submit" value="Go" />
         </form>
+
+        <p />
+
+        <div id="osmd"></div>
 
       </div>
     );
