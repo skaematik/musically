@@ -3,6 +3,8 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 # TODO: do we really need CORS?
 
+from music21 import vexflow, note
+
 
 @app.route("/")
 def home():
@@ -12,9 +14,18 @@ def home():
 @app.route("/musically")
 def musically():
     text = request.args.get('query', '')
-    # will call function here
+
+    print(request)
+    
+    # will call the actual function here
+
+    # dummy testing
+    n = note.Note('C#4')
+    to_be_sent = vexflow.toMusic21j.fromObject(n, mode='html')
+    print(to_be_sent)
+
     return jsonify({
-        'text': text
+        'to_be_sent': to_be_sent
     })
 
 
