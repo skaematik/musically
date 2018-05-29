@@ -104,24 +104,30 @@
 
 .dropzone-container {
     position: absolute;
-    width:100%;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    top: 0;
+    cursor: crosshair;
     overflow: hidden;
     background: rgb(202, 39, 39);
-    z-index: 1;
     background-color: rgb(222, 232, 245);
-     color: rgb(92, 92, 92);
+    color: rgb(92, 92, 92);
     &.hidden {
-        top: -200px;
-        transition: top 0.5s;
+        opacity: 0;
+        transition: all 0.3s;
+        visibility: hidden;
     }
     &.open {
-        top: 64px;
-        transition: top 0.5s;
+        opacity: 1;
+        transition: opacity 0.3s;
     }
 }
 
 .osmd {
     position: relative;
+    width:100%;
+    display: block;
 }
 
 // @keyframes logo-spin {

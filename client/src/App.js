@@ -4,6 +4,7 @@ import './dropzone.css';
 import './App.css';
 import upload_icon from './upload.svg';
 import play_icon from './play.svg';
+import pause_icon from './pause.svg';
 import axios from 'axios';
 import settings from './settings.json';
 
@@ -12,13 +13,15 @@ class App extends Component {
     super(props);
     this.state = {
       selected_sheet: "",
-      uploader_container_className: "hidden"
+      uploader_container_className: "hidden",
+      music_playing: false
     };
     this.onSelectedSheetChange = this.onSelectedSheetChange.bind(this);
     this.renderOsmd = this.renderOsmd.bind(this);
     this.resetOsmd = this.resetOsmd.bind(this);
     this.renderUploader = this.renderUploader.bind(this);
     this.toggleUploader = this.toggleUploader.bind(this);
+    this.togglePlay = this.togglePlay.bind(this);
   }
 
   onSelectedSheetChange(event) {
@@ -28,21 +31,27 @@ class App extends Component {
     if (sheet === "") {
       this.resetOsmd();
       return;
-    }
-    axios.get(settings.endpoints.get_music_xml, {
-      params: {
-        sheet_name: sheet
-      }
-    })
+    } else {
+      axios.get(settings.endpoints.get_music_xml,
+        {
+          params: {
+            sheet_name: sheet
+          }
+        }
+      )
       .then(response => {
         let xml = response.data;
-        this.renderOsmd(xml);
+        if (xml !== "") {
+          this.renderOsmd(xml);
+
+        }
       });
+    }
   }
 
   renderOsmd(xml) {
     this.resetOsmd();
-    let osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay("osmd");
+    let osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", true, "svg");
     osmd.load(xml).then(
       function () {
         osmd.render();
@@ -52,7 +61,14 @@ class App extends Component {
 
   toggleUploader() {
     let bool = (this.state.uploader_container_className === "open") ? "hidden" : "open";
-    this.setState({ "uploader_container_className": bool})
+    this.setState({ uploader_container_className: bool })
+  }
+
+  togglePlay() {
+    console.log('a')
+    let playing = (this.state.music_playing === true) ? false : true;
+    this.setState({ music_playing: playing });
+
   }
 
   renderUploader() {
@@ -61,14 +77,15 @@ class App extends Component {
     let to_wait = 1500;
     window.Dropzone.options.uploader = {
       url: settings.endpoints.image_upload,
-      init: function() {
-        this.on("complete", function (file) {
-          setTimeout(function() {
+      init: function () {
+        this.on("success", function (file) {
+          setTimeout(function () {
             ctx.toggleUploader();
           }, to_wait);
         });
-      }
-      // maxFiles: 1
+      },
+      clickable: false,
+      maxFiles: 1
     };
   }
 
@@ -77,7 +94,6 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.renderOsmd();
     this.renderUploader();
   }
 
@@ -96,9 +112,9 @@ class App extends Component {
                 <img src={upload_icon} className="upload-svg" alt="Upload files" />
               </div>
             </div>
-            <div className="play-btn round-btn">
+            <div className="play-btn round-btn" onClick={this.togglePlay}>
               <div className="round-btn-inside">
-                <img src={play_icon} className="play-svg" alt="Play the music" />
+                <img src={this.state.music_playing === true ? pause_icon : play_icon} className="play-svg" alt="Play the music" />
               </div>
             </div>
           </div>
@@ -110,9 +126,13 @@ class App extends Component {
           </div>
         </div>
 
-        <div className={"dropzone-container" + " " + this.state.uploader_container_className}>
+        <div className={"dropzone-container " + this.state.uploader_container_className} onClick={this.toggleUploader}>
           <div id="uploader" className="dropzone"></div>
         </div>
+
+        <br />
+
+        <div style={{ fontSize: 12 + 'pt' }}>Sample sheet:</div>
 
         <select name="selected-sheet"
           onChange={this.onSelectedSheetChange}
