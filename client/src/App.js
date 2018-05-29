@@ -1,39 +1,48 @@
 import React, { Component } from 'react';
 import logo from './bars.svg';
+import './dropzone.css';
 import './App.css';
+import upload_icon from './upload.svg';
+import play_icon from './play.svg';
 import axios from 'axios';
 import settings from './settings.json';
 
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { value: '' };
-
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
+    this.state = {
+      selected_sheet: "",
+      uploader_container_className: "hidden"
+    };
+    this.onSelectedSheetChange = this.onSelectedSheetChange.bind(this);
+    this.renderOsmd = this.renderOsmd.bind(this);
+    this.resetOsmd = this.resetOsmd.bind(this);
+    this.renderUploader = this.renderUploader.bind(this);
+    this.toggleUploader = this.toggleUploader.bind(this);
   }
 
-  handleChange(event) {
-    this.setState({ value: event.target.value });
-  }
-
-  handleSubmit(event) {
-    console.log('A value was submitted: ' + this.state.value);
+  onSelectedSheetChange(event) {
     event.preventDefault();
-    let spacing = 2;
-    axios.get(settings.server_url)
-      .then(response => {
-        console.log(response);
-        console.log(JSON.parse(response.data.to_be_sent));
-        console.log('A response was received: ', JSON.stringify(response, null, spacing));
+    let sheet = event.target.value;
+    this.setState({ selected_sheet: sheet });
+    if (sheet === "") {
+      this.resetOsmd();
+      return;
+    }
+    axios.get(settings.endpoints.get_music_xml, {
+      params: {
+        sheet_name: sheet
       }
-    );
+    })
+      .then(response => {
+        let xml = response.data;
+        this.renderOsmd(xml);
+      });
   }
 
-  componentDidMount() {
+  renderOsmd(xml) {
+    this.resetOsmd();
     let osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay("osmd");
-    // let xml = "http://downloads2.makemusic.com/musicxml/MozaVeilSample.xml";
-    let xml = "MozaVeilSample.xml";
     osmd.load(xml).then(
       function () {
         osmd.render();
@@ -41,26 +50,79 @@ class App extends Component {
     );
   }
 
+  toggleUploader() {
+    let bool = (this.state.uploader_container_className === "open") ? "hidden" : "open";
+    this.setState({ "uploader_container_className": bool})
+  }
+
+  renderUploader() {
+    console.log('Setting uploader url');
+    let ctx = this;
+    let to_wait = 1500;
+    window.Dropzone.options.uploader = {
+      url: settings.endpoints.image_upload,
+      init: function() {
+        this.on("complete", function (file) {
+          setTimeout(function() {
+            ctx.toggleUploader();
+          }, to_wait);
+        });
+      }
+      // maxFiles: 1
+    };
+  }
+
+  resetOsmd() {
+    window.document.querySelector('div[id="osmd"]').innerHTML = "";
+  }
+
+  componentDidMount() {
+    this.renderOsmd();
+    this.renderUploader();
+  }
+
   render() {
     return (
       <div className="App">
 
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to Musically</h1>
-        </header>
+        <div className="header">
+          <div className="left">
+            <img src={logo} className="logo" alt="logo" />
+            <div className="title">
+              Musically
+            </div>
+            <div className="round-btn" onClick={this.toggleUploader}>
+              <div className="round-btn-inside">
+                <img src={upload_icon} className="upload-svg" alt="Upload files" />
+              </div>
+            </div>
+            <div className="play-btn round-btn">
+              <div className="round-btn-inside">
+                <img src={play_icon} className="play-svg" alt="Play the music" />
+              </div>
+            </div>
+          </div>
 
-        <form className="input" onSubmit={this.handleSubmit}>
-          <label>
-            Send a value to the server:
-            <p />
-            <input type="text" value={this.state.value} onChange={this.handleChange} />
-          </label>
-          <p />
-          <input type="submit" value="Go" />
-        </form>
+          <div className="right">
+            <div className="credits">
+              <span>By Angus, Annie and Yiwei</span>
+            </div>
+          </div>
+        </div>
 
-        <p />
+        <div className={"dropzone-container" + " " + this.state.uploader_container_className}>
+          <div id="uploader" className="dropzone"></div>
+        </div>
+
+        <select name="selected-sheet"
+          onChange={this.onSelectedSheetChange}
+          value={this.state.selected_sheet}>
+          <option value=""></option>
+          <option value="ActorPreludeSample">Chant</option>
+          <option value="BeetAnGeSample">BeetAnGeSample</option>
+          <option value="HelloWorld">HelloWorld</option>
+          <option value="MozartPianoSonata">MozartPianoSonata</option>
+        </select>
 
         <div id="osmd"></div>
 
