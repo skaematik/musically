@@ -11,17 +11,21 @@ import settings from './settings.json';
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      selected_sheet: "",
-      uploader_container_className: "hidden",
-      music_playing: false
-    };
+    this.state = this.initialState();
     this.onSelectedSheetChange = this.onSelectedSheetChange.bind(this);
     this.renderOsmd = this.renderOsmd.bind(this);
     this.resetOsmd = this.resetOsmd.bind(this);
     this.renderUploader = this.renderUploader.bind(this);
     this.toggleUploader = this.toggleUploader.bind(this);
     this.togglePlay = this.togglePlay.bind(this);
+  }
+
+  initialState() {
+    return {
+      selected_sheet: "",
+      uploader_container_className: "hidden",
+      music_playing: false
+    };
   }
 
   onSelectedSheetChange(event) {
@@ -39,13 +43,12 @@ class App extends Component {
           }
         }
       )
-      .then(response => {
-        let xml = response.data;
-        if (xml !== "") {
-          this.renderOsmd(xml);
-
-        }
-      });
+        .then(response => {
+          let xml = response.data;
+          if (xml !== "") {
+            this.renderOsmd(xml);
+          }
+        });
     }
   }
 
@@ -65,16 +68,13 @@ class App extends Component {
   }
 
   togglePlay() {
-    console.log('a')
     let playing = (this.state.music_playing === true) ? false : true;
     this.setState({ music_playing: playing });
-
   }
 
   renderUploader() {
-    console.log('Setting uploader url');
     let ctx = this;
-    let to_wait = 1500;
+    let to_wait = 2000;
     window.Dropzone.options.uploader = {
       url: settings.endpoints.image_upload,
       init: function () {
