@@ -193,9 +193,11 @@ class Symbol:
                 return 0.5
             if self.type == SymbolType.REST_QUARTER:
                 return 1
-            space_above = 4
-            space_below = 2
-            if space_above > space_below:
+            x_idx = len(self.staff_lines[2]) - 1
+            for i in range(len(self.staff_lines[2])):
+                if self.staff_lines[2][i][0] > self.x:
+                    x_idx = i
+            if self.y + self.h > self.staff_lines[2][x_idx][1]:
                 return 4  # full measure rest
             return 2  # half measure rest
 
