@@ -69,24 +69,72 @@ class Song:
         bar = 1;
         bar_length = 0
         i = 0
-        for sym in self.symbols:
+        for i in range(len(self.symbols)):
+            sym = self.symbols[i]
+            print(i)
             if sym.is_bar():
                 print('bar {} is {} long'.format(bar, bar_length))
                 bar += 1
                 if bar_length < 4:
-                    need = 4 - bar_length
-                    d = duration.Duration()
-                    d.quarterLength = need
-                    print('bar {} is too long adding {}'.format(bar, need))
-                    rest = note.Rest(duration=d)
-                    self.stream.append(rest)
+                    # check if we can fix anything in this bar or add rest at end
+                    for ii in range(-1, -i, -1):
+                        need = 4 - (bar_length - 4)
+                        if self.symbols[i + ii].is_bar():
+                            break
+                        if self.symbols[i + ii].markHalf:
+                            increase_by = 4 - bar_length
+                            steam_tmp = self.stream.elements[ii:]
+                            self.stream = self.stream[:ii]
+                            s = steam_tmp[0]
+                            old_len = s.quarterLength
+                            new_len = max(old_len, 2)
+                            d = duration.Duration()
+                            d.quarterLength = new_len
+                            n = note.Note(pitch=steam_tmp[0].pitch, duration=d)
+                            self.stream.append(n)
+                            if len(steam_tmp) != 1:
+                                for iii in range(1, len(steam_tmp)):
+                                    self.stream.append(steam_tmp[iii])
+                            bar_length += (new_len - old_len)
+                            if bar_length == 4:
+                                break
+                    if bar_length != 4:
+                        need = 4 - bar_length
+                        d = duration.Duration()
+                        d.quarterLength = need
+                        print('bar {} is too long adding {}'.format(bar, need))
+                        rest = note.Rest(duration=d)
+                        self.stream.append(rest)
                 if bar_length > 4:
-                    need = 4 - (bar_length - 4)
-                    d = duration.Duration()
-                    d.quarterLength = need
-                    print('bar {} is too long short {}'.format(bar, need))
-                    rest = note.Rest(duration=d)
-                    self.stream.append(rest)
+                    #check if we can fix anything in this bar or add rest at end
+                    for ii in range(-1,-i,-1):
+                        need = 4 - (bar_length - 4)
+                        if self.symbols[i+ii].is_bar():
+                            break
+                        if self.symbols[i+ii].markFull:
+                            reduce_by = bar_length-4
+                            steam_tmp = self.stream.elements[ii:]
+                            self.stream = self.stream[:ii]
+                            s = steam_tmp[0]
+                            old_len = s.quarterLength
+                            new_len = max(old_len - reduce_by, 0.5)
+                            d = duration.Duration()
+                            d.quarterLength = new_len
+                            n = note.Note(pitch=steam_tmp[0].pitch,duration=d)
+                            self.stream.append(n)
+                            if len(steam_tmp) != 1:
+                                for iii in range(1,len(steam_tmp)):
+                                    self.stream.append(steam_tmp[iii])
+                            bar_length -= (old_len-new_len)
+                            if bar_length == 4:
+                                break
+                    if bar_length != 4:
+                        need = 4 - (bar_length - 4)
+                        d = duration.Duration()
+                        d.quarterLength = need
+                        print('bar {} is too long short {}'.format(bar, need))
+                        rest = note.Rest(duration=d)
+                        self.stream.append(rest)
                 bar_length = 0
             if sym.is_part_of_key_sig():
                 if sym.get_type() == SymbolType.CLEF:

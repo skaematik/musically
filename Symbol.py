@@ -60,6 +60,8 @@ class Symbol:
         """
 
     def __init__(self, type, x, y, w, h, line_number, staff_lines=[]):
+        self.markHalf = False
+        self.markFull = False
         self.type = type  # type SymbolType
         self.symbol_order = 0  # not sure how to set this
         self.bar_num = 0  # For modifers that last the whole bar
@@ -100,6 +102,13 @@ class Symbol:
             (minV, maxV, minLoc, maxLoc) = cv2.minMaxLoc(match)
             results.append((maxLoc, maxV, tem_tup[1], tem_tup[0].shape))
         results = sorted(results, key=itemgetter(1))
+        if self.type == SymbolType.HALF and results[-1][2].startswith('full'):
+            self.markFull = True
+            print('full mark')
+        if (self.type == SymbolType.QUARTER or self.type == SymbolType.EIGHTH) and results[-1][2].startswith('half'):
+            self.markHalf = True
+            print('half mark')
+        print('used {}'.format(results[-1][2]))
         # print(results[-1])
         middle = self.y + ((results[-1][0][1] * 2) - self.offsety) + results[-1][3][0]
         x_offset = self.x + ((results[-1][0][0] * 2) - self.offsetx) + results[-1][3][1]

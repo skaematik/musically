@@ -105,7 +105,6 @@ def main():
 
 
 
-
                 # D = ndimage.distance_transform_edt((out))
 
 
