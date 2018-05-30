@@ -44,7 +44,6 @@ The following flags are available:
 
 ```
 -d (debug mode)
---port x (which port to use)
 ```
 
 ### for the client

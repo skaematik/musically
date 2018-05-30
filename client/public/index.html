@@ -6,9 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="theme-color" content="#000000">
 
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script type="text/javascript" src="wildwebmidi.js"></script>
+  <script type="text/javascript" src="midiplayer.js"></script>
+
   <script src="opensheetmusicdisplay.min.js"></script>
   <script src="dropzone.js"></script>
-  
+
   <!--
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
@@ -33,16 +37,27 @@
     You need to enable JavaScript to run this app.
   </noscript>
   <div id="root"></div>
-  <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+  <!-- <div id="player" style="display:none;"></div>
+  <script type="text/javascript">
+    var song = 'data:audio/midi;base64,TVRoZAAAAAYAAQABBABNVHJrAAACNAD/AwAA4ABAAJBNWqAAgE0AAJBFWoQAgEUAAJBHWogAgEcAAJBAWogAgEAAAJBAWoQAgEAAAJA8WoQAgDwAhACQTVqEAIBNAACQSlqQAIBKAACQTVqEAIBNAACQTVqIAIBNAACQTVqIAIBNAACQT1qIAIBPAACQSlqQAIBKAACQR1qQAIBHAACQR1qEAIBHAACQSlqIAIBKAACQTVqEAIBNAACQT1qQAIBPAACQT1qEAIBPAACQSlqIAIBKAACQR1qEAIBHAACQRVqIAIBFAACQPFqQAIA8AACQQVqEAIBBAACQQFqEAIBAAACQRVqQAIBFAACQSlqEAIBKAACQRVqIAIBFAACQQ1qEAIBDAACQR1qQAIBHAACQSlqEAIBKAACQQVqIAIBBAACQQ1qEAIBDAACQRVqQAIBFAACQRVqEAIBFAACQR1qIAIBHAACQQFqEAIBAAACQTVqIAIBNAACQRVqEAIBFAACQRVqEAIBFAACQQ1qEAIBDAACQQ1qIAIBDAACQPFqEAIA8AACQT1qgAIBPAACQQVqIAIBBAACQPFqIAIA8AACQQFqQAIBAAACQSlqgAIBKAACQPlqgAIA+AACQR1qgAIBHAACQQFqgAIBAAACQU1qgAIBTAACQQFqEAIBAAACQPlqEAIA+AACQR1qIAIBHAACQQVqIAIBBAACQSlqEAIBKAIQAkE9akACATwAAkExahACATAAAkExaiACATAAAkE1ahACATQCIAP8vAA==';
+    $(document).ready(function () {
+      el = $("#player");
+      el.midiPlayer({
+        // onUpdate: midiUpdate,
+        // onStop: midiStop,
+        // width: 250
+      });
+      el.midiPlayer.play(song);
+      setTimeout(function () {
+        el.midiPlayer.stop(song);
+      }, 3000);
+      setTimeout(function () {
+        el.midiPlayer.play(song);
+      }, 6000);
+    });
+  </script> -->
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
 </body>
 
 </html>
