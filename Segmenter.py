@@ -551,9 +551,11 @@ class Segmenter:
         symbols = sorted(symbols, key=lambda sym: sym.line_num * line_len + sym.x)
         self.symbols = symbols
         
+        """
         for i, sym in enumerate(symbols):
             cv2.imshow(str(i), sym.im)
         cv2.waitKey(0)
+        """
 
 
 
@@ -639,7 +641,7 @@ class Segmenter:
             return segmenter.symbols, segmenter
         segmenter = Segmenter(filename)
         segmenter.remove_staff_lines()
-        #coloured = segmenter.getSymbols(True)
+        coloured = segmenter.getSymbols(True)
         #cv2.imwrite("symbols.png", coloured)
         segmenter.save_to_file()
         return segmenter.symbols, segmenter
