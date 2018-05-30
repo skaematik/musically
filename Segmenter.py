@@ -5,6 +5,7 @@ from operator import itemgetter
 import math
 from collections import Counter
 from operator import itemgetter
+import scipy
 
 import cv2
 
@@ -377,20 +378,62 @@ class Segmenter:
                 y_ = max(r1[1], r2[1])
                 w, h = x_ - x, y_ - y
                 boxes.append((x, y, w, h))
-
+        
+        
+        def conncomp(im):
+            def min_pix_dist(labels, label1, label2):
+                idx1 = np.transpose(np.where(labels == label1))
+                idx2 = np.transpose(np.where(labels == label2))
+                return np.min(scipy.spatial.distance.cdist(idx1, idx2))
+            
+            
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(im)
+            
+            joined = {}
+            
+            #stats = [label,col] -> col = cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA
+            for i in range(1, num_labels):
+                for j in range(1, num_labels):
+                    if i < j and i not in joined and j not in joined:
+                        centroid_i, centroid_j = centroids[i,:], centroids[j,:]
+                        area_i, area_j = stats[i,cv2.CC_STAT_AREA], stats[j,cv2.CC_STAT_AREA]
+                        w_i, w_j = stats[i,cv2.CC_STAT_WIDTH], stats[j,cv2.CC_STAT_WIDTH]
+                        h_i, h_j = stats[i,cv2.CC_STAT_HEIGHT], stats[j,cv2.CC_STAT_HEIGHT]
+                        bb_occupy_i, bb_occupy_j = area_i/(w_i*h_i), area_j/(w_j*h_j)
+                        
+                        centroid_dist = np.linalg.norm(centroid_i - centroid_j)
+                        area_diff = abs(area_i - area_j)
+                        area_perc_diff = 0.5*(float(area_diff/area_i) + float(area_diff/area_j))
+                        
+                        if centroid_dist < 2*min(w_i,w_j):
+                            if min_pix_dist(labels, i, j) < 20:
+                                labels[labels == j] = i
+            
+            colour = np.zeros(im.shape + (3,), dtype="uint8")
+            for label in range(1, num_labels):
+                idx = np.where(labels == label)
+                if idx[0].size != 0:
+                    for chan in range(3):
+                        channel = colour[:,:,chan]
+                        channel[idx] = np.random.randint(128, 256, dtype="uint8")
+            return colour
+        
+        
         _, contours, _ = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         new_c = []
         for c in contours:
             if cv2.contourArea(c) > 100:
                 new_c.append(c)
+        
         boxes = [cv2.boundingRect(c) for c in new_c]
 
-        colour = np.dstack((im, im, im))
-
+        #colour = np.dstack((im, im, im))
+        colour = conncomp(im)
+        
         if merge_overlap:
             merge_overlaps(boxes)
 
-        draw(colour, boxes);
+        #draw(colour, boxes);
 
         symbols = boxes2symbols(boxes)
         line_len = self.bin_img.shape[1]
@@ -528,9 +571,12 @@ class Segmenter:
         if use_cache:
             segmenter = Segmenter.load_segmenter_from_file(filename)
         if segmenter is not None:
+            boxed = segmenter.getSymbols(True)
+            cv2.imwrite("symbols.png", boxed)
             return segmenter.symbols, segmenter
         segmenter = Segmenter(filename)
         segmenter.remove_staff_lines()
-        segmenter.getSymbols(True)
+        boxed = segmenter.getSymbols(True)
+        cv2.imwrite("symbols.png", boxed)
         segmenter.save_to_file()
         return segmenter.symbols, segmenter
