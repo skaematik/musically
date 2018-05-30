@@ -74,13 +74,22 @@ class Song:
             print(i)
             if sym.is_bar():
                 print('bar {} is {} long'.format(bar, bar_length))
-                bar += 1
                 if bar_length < 4:
+                    saw_eight_alone = False
+                    saw_eight_alone_at = 0
                     # check if we can fix anything in this bar or add rest at end
                     for ii in range(-1, -i, -1):
-                        need = 4 - (bar_length - 4)
+                        ss = self.symbols[i + ii]
                         if self.symbols[i + ii].is_bar():
                             break
+                        before_ss = self.symbols[i + ii - 1]
+                        after_ss = self.symbols[i + ii + 1]
+
+                        if self.symbols[i + ii].type == SymbolType.EIGHTH:
+                             if self.symbols[i + ii - 1].type != SymbolType.EIGHTH and \
+                                     self.symbols[i + ii + 1].type != SymbolType.EIGHTH:
+                                        saw_eight_alone = True
+                                        saw_eight_alone_at = ii
                         if self.symbols[i + ii].markHalf:
                             increase_by = 4 - bar_length
                             steam_tmp = self.stream.elements[ii:]
@@ -97,14 +106,30 @@ class Song:
                                     self.stream.append(steam_tmp[iii])
                             bar_length += (new_len - old_len)
                             if bar_length == 4:
+                                print('corrected with shortening')
                                 break
                     if bar_length != 4:
                         need = 4 - bar_length
-                        d = duration.Duration()
-                        d.quarterLength = need
-                        print('bar {} is too long adding {}'.format(bar, need))
-                        rest = note.Rest(duration=d)
-                        self.stream.append(rest)
+                        if need == 0.5 and saw_eight_alone:
+                            print('bar {} is too short changing eighth'.format(bar, need))
+                            ii = saw_eight_alone_at
+                            steam_tmp = self.stream.elements[ii:]
+                            self.stream = self.stream[:ii]
+                            s = steam_tmp[0]
+                            d = duration.Duration()
+                            d.quarterLength = 1
+                            n = note.Note(pitch=steam_tmp[0].pitch, duration=d)
+                            self.stream.append(n)
+                            if len(steam_tmp) != 1:
+                                for iii in range(1, len(steam_tmp)):
+                                    self.stream.append(steam_tmp[iii])
+                        else:
+                            d = duration.Duration()
+                            d.quarterLength = need
+                            print('bar {} is too short adding {}'.format(bar, need))
+                            rest = note.Rest(duration=d)
+                            if need != 4:
+                                self.stream.append(rest)
                 if bar_length > 4:
                     #check if we can fix anything in this bar or add rest at end
                     for ii in range(-1,-i,-1):
@@ -127,6 +152,7 @@ class Song:
                                     self.stream.append(steam_tmp[iii])
                             bar_length -= (old_len-new_len)
                             if bar_length == 4:
+                                print('corrected with legnthening')
                                 break
                     if bar_length != 4:
                         need = 4 - (bar_length - 4)
@@ -136,6 +162,7 @@ class Song:
                         rest = note.Rest(duration=d)
                         self.stream.append(rest)
                 bar_length = 0
+                bar += 1
             if sym.is_part_of_key_sig():
                 if sym.get_type() == SymbolType.CLEF:
                     pass

@@ -221,7 +221,7 @@ class Segmenter:
             for y in ys:
                 breakout = False
                 for d in done:
-                    if abs(d - y) < staff_black:
+                    if abs(d - y) < staff_white/2:
                         breakout = True
                         break
                 if breakout:

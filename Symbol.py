@@ -108,7 +108,6 @@ class Symbol:
         if (self.type == SymbolType.QUARTER or self.type == SymbolType.EIGHTH) and results[-1][2].startswith('half'):
             self.markHalf = True
             print('half mark')
-        print('used {}'.format(results[-1][2]))
         # print(results[-1])
         middle = self.y + ((results[-1][0][1] * 2) - self.offsety) + results[-1][3][0]
         x_offset = self.x + ((results[-1][0][0] * 2) - self.offsetx) + results[-1][3][1]
@@ -207,7 +206,7 @@ class Symbol:
                 if self.staff_lines[2][i][0] > self.x:
                     x_idx = i
                     break
-            if self.y + self.h - self.staff_lines[2][x_idx][1] > 2 * self.staff_black:
+            if self.y + self.h - self.staff_lines[2][x_idx][1] > 4 * self.staff_black:
                 return 4  # full measure rest
             return 2  # half measure rest
 

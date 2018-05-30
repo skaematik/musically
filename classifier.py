@@ -3,11 +3,16 @@ from keras.models import load_model
 from Segmenter import Segmenter
 
 import numpy as np
+import tensorflow as tf
 
 class Classifier:
     def __init__(self):
         print('loading keras model...')
-        self.model = load_model('./resources/model/keras_modelv3.h5')
+        self.g = tf.Graph()
+        with self.g.as_default():
+            print("Loading model")
+            self.model = load_model('./resources/model/keras_modelv3.h5') # load_model(os.path.join(MODEL_DIR, 'classifier_model.hdf5'))
+       # self.model = load_model('./resources/model/keras_modelv3.h5')
         print('loaded keras model')
         # print('forcing first prediction for speed later')
         # segmenter = Segmenter.load_segmenter_from_file('auto_gen_large-002_noise.png')
@@ -23,7 +28,8 @@ class Classifier:
 
     def predict_symbols(self, symbols, use_class_numbers=False):
         symImgs = [np.expand_dims(x.im, axis=3) for x in symbols]
-        y = self.model.predict_classes(np.asarray(symImgs), batch_size=len(symImgs), verbose=1)
+        with self.g.as_default():
+            y = self.model.predict_classes(np.asarray(symImgs), batch_size=len(symImgs), verbose=1)
         if use_class_numbers:
             return y
         return [self.labels[i] for i in y]
