@@ -5,6 +5,9 @@ import os
 import os.path as osp
 import json
 from API import predict
+from classifier import Classifier
+
+classifier = Classifier()
 
 app = Flask(__name__)
 
@@ -74,8 +77,7 @@ def image_upload():
         fp = os.path.join(app.config['UPLOADED_PATH'], f.filename)
         f.save(fp)
         print('saved file. predicting...')
-        xml, b64 = predict(fp)
-
+        xml, b64 = predict(fp, classifier)
         print('done predicting. musicxml is sending...')
         return json.dumps({'success': True, "data": {"xml": xml, "midi": str(b64)[2:-1] }}), 200, {'ContentType': 'application/json'}
     else:
