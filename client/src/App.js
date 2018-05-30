@@ -417,7 +417,8 @@ class App extends Component {
       // maxFiles: 1,
       thumbnailWidth: 250,
       thumbnailHeight: 250,
-      dictDefaultMessage: "<b>Drop images here</b> to upload them"
+      dictDefaultMessage: "<b>Drop images here</b> to upload them 😂",
+      timeout: 999999
     };
   }
 
@@ -453,6 +454,7 @@ class App extends Component {
 
   componentDidMount() {
     this.renderUploader();
+    axios.get(settings.server_url);
   }
 
   render() {
