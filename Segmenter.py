@@ -402,7 +402,7 @@ class Segmenter:
             erased = {}
             
             for i in range(1, num_labels):
-                if stats[i,cv2.CC_STAT_AREA] < 100:
+                if stats[i,cv2.CC_STAT_AREA] < 10*self.staff_white or stats[i,cv2.CC_STAT_WIDTH] > 20*self.staff_white or stats[i,cv2.CC_STAT_HEIGHT] > 20*self.staff_white:
                     labels[labels == i] = 0
                     erased[i] = True
             
