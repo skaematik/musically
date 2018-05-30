@@ -14,6 +14,10 @@ def get_duration_from_name(name):
 
 
 treble_values = {
+    -8: 'D3',
+    -7: 'E3',
+    -6: 'F3',
+    -5: 'G3',
     -4: 'A3',
     -3: 'B3',
     -2: 'C4',
@@ -30,11 +34,16 @@ treble_values = {
     9: 'G5',
     10: 'A5',
     11: 'B5',
-    12: 'C6'
+    12: 'C6',
+    13: 'D6',
+    14: 'E6'
 }
 
 def to_pitchStr_treble(amount):
-    return treble_values[amount]
+    try :
+        return treble_values[amount]
+    except Exception:
+        return 'A2'
 
 
 class Song:
@@ -57,20 +66,25 @@ class Song:
             if name != '.DS_Store':
                 tem = cv2.imread('./resources/templates/'+name, 0)
                 templates.append((tem, name))
-
+        bar = 1;
         bar_length = 0
+        i = 0
         for sym in self.symbols:
             if sym.is_bar():
+                print('bar {} is {} long'.format(bar, bar_length))
+                bar += 1
                 if bar_length < 4:
                     need = 4 - bar_length
                     d = duration.Duration()
                     d.quarterLength = need
+                    print('bar {} is too long adding {}'.format(bar, need))
                     rest = note.Rest(duration=d)
                     self.stream.append(rest)
                 if bar_length > 4:
-                    need = bar_length - 4
+                    need = 4 - (bar_length - 4)
                     d = duration.Duration()
                     d.quarterLength = need
+                    print('bar {} is too long short {}'.format(bar, need))
                     rest = note.Rest(duration=d)
                     self.stream.append(rest)
                 bar_length = 0
@@ -95,9 +109,11 @@ class Song:
                     n = note.Note(pitchName=pitch_str, duration=d)
                     self.stream.append(n)
             if sym.is_rest():
-                d = get_duration_from_name(sym.get_name())
-                bar_length += d.quarterLength
-                n = note.Rest(duration=d)
+                d = sym.get_rest_duration()
+                bar_length += d
+                dur = duration.Duration()
+                dur.quarterLength = d
+                n = note.Rest(duration=dur)
                 self.stream.append(n)
 
 

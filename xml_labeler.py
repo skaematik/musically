@@ -123,14 +123,14 @@ class Xml_labeler:
 
 def main():
     picture_filenames = []
-    files= sorted(os.listdir('./sheets/final pieces/'))
+    files= sorted(os.listdir('./sheets/training/pieces/'))
     for filename in files:
         if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
             print(filename)
             picture_filenames.append('./sheets/tmp/{}_noise.png'.format(filename[:-4]))
     xml_labeler = Xml_labeler(
         picture_filenames=picture_filenames,
-        xml_filename=os.path.join('./sheets/final pieces/','auto_gen_large.mscx'),
+        xml_filename=os.path.join('./sheets/training/pieces/', 'auto_gen_large.mscx'),
         output_path='./tests/output/')
     xml_labeler.label_symbols(edit_last=True)
     xml_labeler.save_symbols_pictures()

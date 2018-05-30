@@ -34,8 +34,12 @@ def main():
             cv2.imwrite('./sheets/tmp/{}_white.png'.format(filename[:-4]), img)
 
             symbols, seg = Segmenter.symbols_from_File('./sheets/tmp/{}_white.png'.format(filename[:-4]), use_cache=True)
+            # cv2.imshow('grey', seg.getSymbols())
+            # cv2.waitKey(10000)
             y = classifier.predict_symbols(symbols,use_class_numbers=True)
+            yy = classifier.predict_probabilities_symbols(symbols)
             for i in range(len(y)):
+                print('class: {} probs: {}'.format(y[i],yy[i]))
                 symbols[i].work_out_type(y[i])
                 cv2.imwrite('./tests/output/classifer/{}_{}_{}.png'.format(filename[:-4], symbols[i].get_name(), i), symbols[i].im)
             cv2.imwrite('./tests/output/classifer/{}__boxed.png'.format(filename[:-4]), seg.getSymbols(True))

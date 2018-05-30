@@ -9,7 +9,7 @@ class Classifier:
 
 
     def __init__(self):
-        self.model = load_model('./resources/model/keras_modelv3.h5')
+        self.model = load_model('./resources/model/keras_modelv4.h5')
         print('forcing first prediction for speed later')
         segmenter = Segmenter.load_segmenter_from_file('auto_gen_large-002_noise.png')
         symbols = segmenter.symbols

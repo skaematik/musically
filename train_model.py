@@ -17,62 +17,16 @@ import cv2
 import os
 import os.path as osp
 
+import imgaug as ia
+from imgaug import augmenters as iaa
+
 INPUT_FOLDER = "sheets/training/trimmed"
 OUTPUT_FOLDER = "sheets/training/generated"
+OUTPUT_MUTATED_FOLDER = "sheets/training/mutated"
 NOISED_FOLDER = "sheets/training/noised"
 
 
 def generate_data(INPUT_FOLDER,OUTPUT_FOLDER, NOISED_FOLDER=None):
-    def elastic_transform(image, alpha, sigma, random_state=None):
-        """ call dirty
-        Elastic deformation of images as described in [Simard2003]_ (with modifications).
-        .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
-             Convolutional Neural Networks applied to Visual Document Analysis", in
-             Proc. of the International Conference on Document Analysis and
-             Recognition, 2003.
-
-         Based on https://gist.github.com/erniejunior/601cdf56d2b424757de5
-        """
-        if random_state is None:
-            random_state = np.random.RandomState(None)
-
-        shape = image.shape
-
-        dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
-        dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
-
-        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
-        indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1))
-
-        return map_coordinates(image, indices, order=1, mode='reflect').reshape(shape)
-
-
-    def dirty(im):
-        """ adds noise and warping to returned image"""
-        return elastic_transform(im, im.shape[1] * 2, im.shape[1] * 0.1)
-
-
-    def generate(imgs_to_gen, folder_save_to, img_location):
-        datagen = ImageDataGenerator(
-            rotation_range=3,
-            shear_range=0.1,
-            zoom_range=0.06,
-            horizontal_flip=False,
-            vertical_flip=True,
-            fill_mode='nearest')
-
-        img = load_img(img_location)  # this is a PIL image
-        x = img_to_array(img)  # this is a Numpy array with shape (3, 150, 150)
-        x = x.reshape((1,) + x.shape)  # this is a Numpy array with shape (1, 3, 150, 150)
-
-        # the .flow() command below generates batches of randomly transformed images
-        # and saves the results to the `preview/` directory
-        n_imgs_created = 0
-        for batch in datagen.flow(x, batch_size=1,
-                                  save_to_dir=folder_save_to, save_prefix='note', save_format='png'):
-            n_imgs_created += 1
-            if n_imgs_created > imgs_to_gen:  # generate this many images
-                break  # otherwise the generator would loop indefinitely
 
 
     # import images from ./trimmed and output to ./generated
@@ -113,10 +67,40 @@ def generate_data(INPUT_FOLDER,OUTPUT_FOLDER, NOISED_FOLDER=None):
                 if os.path.isfile(file):
                     os.remove(file)
                 continue
-            generate(imgs_to_gen=imgs_to_gen,
-                     folder_save_to=osp.join(OUTPUT_FOLDER, folder),
-                     img_location=osp.join(INPUT_FOLDER, folder, file))
-            # eta
+
+            seq = iaa.Sequential([
+                iaa.Affine(
+                    mode="edge",
+                    scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
+                    translate_percent={"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
+                    rotate=(-2, 2),
+                    shear=(-4, 4)
+                ),
+                iaa.Sometimes(0.8, iaa.ElasticTransformation(alpha=(0.5, 1.5), sigma=0.5)),
+                iaa.Sometimes(0.5,iaa.GaussianBlur((0, 1.2))),
+                # iaa.SimplexNoiseAlpha(iaa.OneOf([
+                #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
+                #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
+                # ])),
+                iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
+                # add gaussian noise to images
+                iaa.Sometimes(0.2,
+                              [iaa.SaltAndPepper((0.01, 0.05), per_channel=0.5)  # randomly remove up to 10% of the pixels
+                ]),
+
+            ], random_order=False)
+
+            image = cv2.imread(osp.join(INPUT_FOLDER, folder, file), 0)
+            images = [image] * imgs_to_gen
+            images_aug = seq.augment_images(images)
+            for i, image_aug in enumerate(images_aug):
+                _, bin_img = cv2.threshold(image_aug, 0, 255, cv2.THRESH_OTSU)
+                cv2.imwrite(osp.join(OUTPUT_FOLDER, folder, 'note_{}_{}.png'.format(imgs,i)), bin_img)
+
+            # generate(imgs_to_gen=imgs_to_gen,
+            #          folder_save_to=osp.join(OUTPUT_FOLDER, folder),
+            #          img_location=osp.join(INPUT_FOLDER, folder, file))
+            # # eta
             imgs += 1
             imgs_in_this_class += 1
             elapsed_time = time.time() - start_time
@@ -133,14 +117,13 @@ def generate_data(INPUT_FOLDER,OUTPUT_FOLDER, NOISED_FOLDER=None):
     print('imgs generated ', imgs * imgs_to_gen * dirty_times)
     print('number of input imgs ', imgs)
 
-
-
 """# keras training
 
 run this section to train the model
 """
 
-def train_model(OUTPUT_FOLDER,):
+
+def train_model(OUTPUT_FOLDER):
     batch_size = 32
     epochs = 20
 
@@ -152,6 +135,8 @@ def train_model(OUTPUT_FOLDER,):
     folders = sorted(folders)
     ",\n".join(folders)
     for folder in folders:
+        if folder == '.DS_Store':
+            continue
         files = os.listdir(osp.join(OUTPUT_FOLDER, folder))
         for file in files:
             if not file.endswith(".png"):
@@ -160,7 +145,7 @@ def train_model(OUTPUT_FOLDER,):
                 continue
             images.append(cv2.imread(osp.join(OUTPUT_FOLDER, folder, file), 0))
             labels.append(current_class)
-        print('label: {}\t\tsamples: {}'.format(folder,len(files)))
+        print('label: {}\t\tsamples: {}'.format(folder, len(images)))
         current_class += 1
 
     images = np.array(images)
@@ -254,4 +239,5 @@ def train_model(OUTPUT_FOLDER,):
     print(cm)
 
 if __name__ == '__main__':
-    train_model()
+    # generate_data(INPUT_FOLDER, OUTPUT_FOLDER)
+    train_model(OUTPUT_FOLDER)

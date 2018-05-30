@@ -79,6 +79,7 @@ class Symbol:
 
     def work_out_type(self, label_id):
         self.type = SymbolType(label_id)
+        print(self.type.name)
 
     def get_type(self):
         return self.type
@@ -103,23 +104,37 @@ class Symbol:
         middle = self.y + ((results[-1][0][1] * 2) - self.offsety) + results[-1][3][0]
         x_offset = self.x + ((results[-1][0][0] * 2) - self.offsetx) + results[-1][3][1]
 
-        x_idx = -1  # Find where in line the note is
-        for i in range(len(self.staff_lines[0])):
-            if self.staff_lines[0][i][0] > self.x:
-                x_idx = i
+        x_idx_4 = -1  # Find where in line the note is
+        x_idx_2 = -1  # Find where in line the note is
+        x_idx_0 = -1  # Find where in line the note is
+        for i in range(max(len(self.staff_lines[0]),len(self.staff_lines[2]),len(self.staff_lines[4]))):
+            if i < len(self.staff_lines[0]) and self.staff_lines[0][i][0] > self.x:
+                x_idx_0 = i
+            if i < len(self.staff_lines[2]) and self.staff_lines[2][i][0] > self.x:
+                x_idx_2 = i
+            if i < len(self.staff_lines[4]) and self.staff_lines[4][i][0] > self.x:
+                x_idx_4 = i
+            if x_idx_0 != -1 and x_idx_2 != -1 and x_idx_4 != -1:
                 break
-        if middle > self.staff_lines[4][x_idx][1]:  # Below the final line
-            amount_below = middle - self.staff_lines[4][x_idx][1]
+        if x_idx_0 == -1:
+            x_idx_0 = len(self.staff_lines[0])-1
+        if x_idx_2 == -1:
+            x_idx_2 = len(self.staff_lines[2]) - 1
+        if x_idx_4 == -1:
+            x_idx_4 = len(self.staff_lines[4]) - 1
+
+        if middle > self.staff_lines[4][x_idx_4][1]:  # Below the final line
+            amount_below = middle - self.staff_lines[4][x_idx_4][1]
             amount_below = amount_below / self.staff_white
             amount = round(amount_below * 2.0) / 2.0
             amount = - (amount * 2)
-        elif middle < self.staff_lines[0][x_idx][1]:  # above first line
-            amount_above = self.staff_lines[0][x_idx][1] - middle
+        elif middle < self.staff_lines[0][x_idx_0][1]:  # above first line
+            amount_above = self.staff_lines[0][x_idx_0][1] - middle
             amount_above = amount_above / self.staff_white
             amount = round(amount_above * 2.0) / 2.0
             amount = amount * 2 + 8
         else:
-            amount_above_below = self.staff_lines[2][x_idx][1] - middle
+            amount_above_below = self.staff_lines[2][x_idx_2][1] - middle
             amount_above_below = amount_above_below / self.staff_white
             amount = round(amount_above_below * 2.0) / 2.0
             amount = amount * 2 + 4
@@ -169,3 +184,18 @@ class Symbol:
             image[location[1]:(location[1] + size[1]), location[0]:(location[0] + size[0])] = 255
             result.append((note, location[0]))
         return [n[0] for n in sorted(result, key=itemgetter(1))]
+
+    def get_rest_duration(self):
+        if not self.is_rest():
+            return 0
+        else:
+            if self.type == SymbolType.REST_EIGHTH:
+                return 0.5
+            if self.type == SymbolType.REST_QUARTER:
+                return 1
+            space_above = 4
+            space_below = 2
+            if space_above > space_below:
+                return 4  # full measure rest
+            return 2  # half measure rest
+
