@@ -265,8 +265,12 @@
 }
 
 .dropzone .dz-message {
-    text-align: center;
-    margin: 7em 0;
+    /* text-align: center; */
+    /* margin: auto; */
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .dropzone .dz-preview {
@@ -275,6 +279,8 @@
     vertical-align: top;
     margin: 16px;
     min-height: 100px;
+    border-radius: 20px;
+    /* larger container of preview image */
 }
 
 .dropzone .dz-preview:hover {
@@ -381,8 +387,9 @@
 .dropzone .dz-preview .dz-image {
     border-radius: 20px;
     overflow: hidden;
-    width: 120px;
-    height: 120px;
+    width: 250px;
+    /*size of img preview of progress bar*/
+    height: 250px;
     position: relative;
     display: block;
     z-index: 10;
@@ -466,7 +473,8 @@
     margin-top: -8px;
     width: 80px;
     margin-left: -40px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(245, 245, 245, 0.9);
+    /*background of progress bar*/
     transform: scale(1);
     border-radius: 8px;
     overflow: hidden;
@@ -510,8 +518,9 @@
     transition: opacity 0.3s ease;
     border-radius: 8px;
     font-size: 13px;
-    top: 130px;
-    left: -10px;
+    top: 261px;
+    /* readjust error message window balloon*/
+    left: 56px;
     width: 140px;
     background: #be2626;
     background: linear-gradient(to bottom, #be2626, #a92222);

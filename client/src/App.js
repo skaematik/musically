@@ -28,6 +28,8 @@ class App extends Component {
     };
   }
 
+
+
   onSelectedSheetChange(event) {
     event.preventDefault();
     let sheet = event.target.value;
@@ -54,6 +56,8 @@ class App extends Component {
 
   renderOsmd(xml) {
     this.resetOsmd();
+    console.log('rendering');
+    console.log(xml);
     let osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", true, "svg");
     osmd.load(xml).then(
       function () {
@@ -78,14 +82,24 @@ class App extends Component {
     window.Dropzone.options.uploader = {
       url: settings.endpoints.image_upload,
       init: function () {
-        this.on("success", function (file) {
+        this.on("success", function (file, response) {
           setTimeout(function () {
             ctx.toggleUploader();
+            ctx.renderOsmd(JSON.parse(response).data);
           }, to_wait);
         });
+        // this.on("complete", function (file) {
+        //   setTimeout(function () {
+        //   this.removeFile(file);
+        //   }, to_wait+200);
+        // });
       },
+      // clickable: window.document.getElementsByClassName("dz-default dz-message")[0],
       clickable: false,
-      maxFiles: 1
+      // maxFiles: 1,
+      thumbnailWidth: 250,
+      thumbnailHeight: 250,
+      dictDefaultMessage: "<b>Drop images here</b> to upload them"
     };
   }
 
