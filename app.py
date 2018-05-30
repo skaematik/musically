@@ -73,8 +73,11 @@ def image_upload():
         f = request.files.get('file')
         fp = os.path.join(app.config['UPLOADED_PATH'], f.filename)
         f.save(fp)
-        data = predict(fp)
-        return json.dumps({'success': True, "data": data }), 200, {'ContentType': 'application/json'}
+        print('saved file. predicting...')
+        xml, b64 = predict(fp)
+
+        print('done predicting. musicxml is sending...')
+        return json.dumps({'success': True, "data": {"xml": xml, "midi": str(b64)[2:-1] }}), 200, {'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
     # return render_template('index.html')
@@ -91,11 +94,11 @@ def add_ua_compat(response):
 def parse_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-d', action='store_true', help='debug the flask app')
-    parser.add_argument('--port', type=int, default=5000,
-                        help='the port for the app to run on')
+    # parser.add_argument('--port', type=int, default=5000,
+    #                     help='the port for the app to run on')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
-    app.run(port=args.port, debug=args.d)
+    app.run(debug=args.d)
