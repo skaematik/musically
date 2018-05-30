@@ -401,6 +401,7 @@ class App extends Component {
 
             ctx.midi = parsed.midi;
             ctx.playMidi();
+            ctx.setState({ music_playing: true });
 
           }, to_wait);
 

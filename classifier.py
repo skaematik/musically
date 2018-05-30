@@ -5,11 +5,10 @@ from Segmenter import Segmenter
 import numpy as np
 
 class Classifier:
-
-
-
     def __init__(self):
+        print('loading keras model...')
         self.model = load_model('./resources/model/keras_modelv3.h5')
+        print('loaded keras model')
         # print('forcing first prediction for speed later')
         # segmenter = Segmenter.load_segmenter_from_file('auto_gen_large-002_noise.png')
         # symbols = segmenter.symbols

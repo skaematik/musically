@@ -7,7 +7,6 @@ import json
 from API import predict
 from classifier import Classifier
 
-classifier = Classifier()
 
 app = Flask(__name__)
 
@@ -77,6 +76,9 @@ def image_upload():
         fp = os.path.join(app.config['UPLOADED_PATH'], f.filename)
         f.save(fp)
         print('saved file. predicting...')
+        # global classifier
+        # xml, b64 = predict(fp, classifier)
+        global classifier
         xml, b64 = predict(fp, classifier)
         print('done predicting. musicxml is sending...')
         return json.dumps({'success': True, "data": {"xml": xml, "midi": str(b64)[2:-1] }}), 200, {'ContentType': 'application/json'}
@@ -92,6 +94,11 @@ def add_ua_compat(response):
     response.headers['Access-Control-Allow-Headers'] = 'Cache-Control, X-Requested-With'
     return response
 
+@app.before_first_request
+def init_model():
+    global classifier
+    classifier = Classifier()
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='')
@@ -103,4 +110,6 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+    # global classifier
+    # classifier = Classifier()
     app.run(debug=args.d)

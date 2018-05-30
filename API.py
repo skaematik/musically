@@ -24,11 +24,14 @@ import base64
 # DEBUG_SHOW_PDF_FILE = False
 
 
+# def predict(filepath):
 def predict(filepath, classifier):
     """
     Input: filepath to the image file (string)
     Output: MusicXML (string) and midi (base 64 string)
     """
+
+    # classifier = Classifier()
 
     # print(filepath)
 
