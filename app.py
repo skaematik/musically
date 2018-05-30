@@ -4,6 +4,7 @@ from flask_dropzone import Dropzone
 import os
 import os.path as osp
 import json
+from API import predict
 
 app = Flask(__name__)
 
@@ -70,8 +71,10 @@ def image_upload():
     print('received file')
     if request.method == 'POST':
         f = request.files.get('file')
-        f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
-        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+        fp = os.path.join(app.config['UPLOADED_PATH'], f.filename)
+        f.save(fp)
+        data = predict(fp)
+        return json.dumps({'success': True, "data": data }), 200, {'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
     # return render_template('index.html')
