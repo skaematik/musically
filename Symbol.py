@@ -108,11 +108,11 @@ class Symbol:
         x_idx_2 = -1  # Find where in line the note is
         x_idx_0 = -1  # Find where in line the note is
         for i in range(max(len(self.staff_lines[0]),len(self.staff_lines[2]),len(self.staff_lines[4]))):
-            if i < len(self.staff_lines[0]) and self.staff_lines[0][i][0] > self.x:
+            if i < len(self.staff_lines[0]) and self.staff_lines[0][i][0] > self.x and x_idx_0 == -1:
                 x_idx_0 = i
-            if i < len(self.staff_lines[2]) and self.staff_lines[2][i][0] > self.x:
+            if i < len(self.staff_lines[2]) and self.staff_lines[2][i][0] > self.x and x_idx_2 == -1:
                 x_idx_2 = i
-            if i < len(self.staff_lines[4]) and self.staff_lines[4][i][0] > self.x:
+            if i < len(self.staff_lines[4]) and self.staff_lines[4][i][0] > self.x and x_idx_4 == -1:
                 x_idx_4 = i
             if x_idx_0 != -1 and x_idx_2 != -1 and x_idx_4 != -1:
                 break
@@ -197,7 +197,8 @@ class Symbol:
             for i in range(len(self.staff_lines[2])):
                 if self.staff_lines[2][i][0] > self.x:
                     x_idx = i
-            if self.y + self.h > self.staff_lines[2][x_idx][1]:
+                    break
+            if self.y + self.h - self.staff_lines[2][x_idx][1] > 2 * self.staff_black:
                 return 4  # full measure rest
             return 2  # half measure rest
 
