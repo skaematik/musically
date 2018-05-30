@@ -16,8 +16,8 @@ from scipy import ndimage
 import matplotlib.pyplot as plt
 from vec_noise import pnoise2, snoise2
 from keras.models import load_model
-from music21 import musicxml, environment
-
+from music21 import musicxml, environment, instrument
+import base64
 
 from xml_labeler import Xml_labeler
 
@@ -39,15 +39,16 @@ def predict(filepath):
     filename, extension = osp.splitext(basename)
 
     img = cv2.imread(filepath, 0)
-    top = int(0.1 * img.shape[0])
+    # top = int(0.1 * img.shape[0])
     # img = cv2.copyMakeBorder(
-        # img, top, top, top, top, cv2.BORDER_CONSTANT, None, 255)
+    # img, top, top, top, top, cv2.BORDER_CONSTANT, None, 255)
 
     # cv2.imwrite('./sheets/tmp/{}_white.png'.format(basename), img)
     # symbols, seg = Segmenter.symbols_from_File(
     #     './sheets/tmp/{}_white.png'.format(basename), use_cache=True)
-    symbols, seg = Segmenter.symbols_from_File( filepath, use_cache = True)
+    symbols, seg = Segmenter.symbols_from_File(filepath, use_cache=True)
     y = classifier.predict_symbols(symbols, use_class_numbers=True)
+    # yy = classifier.predict_probabilities_symbols(symbols)
     for i in range(len(y)):
         symbols[i].work_out_type(y[i])
         cv2.imwrite('./tests/tmp/classifer/{}_{}_{}.png'.format(
@@ -64,15 +65,25 @@ def predict(filepath):
             'musescoreDirectPNGPath',
             'C:\\Program Files (x86)\\MuseScore 2\\bin\\MuseScore.exe')
         song.stream.show('musicxml.pdf')
-    
+
     # song.stream.show()
 
-    GEX = musicxml.m21ToXml.GeneralObjectExporter(song.stream)
-    out = GEX.parse()
+    # for el in song.stream.recurse():
+    #     if 'Instrument' in el.classes:  # or 'Piano'
+    #         el.activeSite.replace(el, instrument.Piano())
+
+    # for p in song.stream.Score().parts:
+    #     p.insert(0, instrument.Piano())
+
+    out = musicxml.m21ToXml.GeneralObjectExporter(song.stream).parse()
     outStr = out.decode('utf-8')
 
-    return outStr.replace('\n','')
+    song.stream.write('midi', osp.join('mid', filename + '.mid'))
+    file = open(osp.join('mid',filename+'.mid'), 'rb').read()
+    b64 = base64.b64encode(file)
+
+    return outStr.replace('\n', ''), b64
 
 
 if __name__ == "__main__":
-    predict("./sheets/auto1.png")
+    predict("./sheets/test_piece2-1.png")

@@ -5,6 +5,7 @@ from operator import itemgetter
 import math
 from collections import Counter
 from operator import itemgetter
+import scipy
 
 import cv2
 
@@ -347,13 +348,13 @@ class Segmenter:
         def box2pts(box):
             x, y, w, h = box
             return (x, y), (x + w, y + h)
-
+        
         def merge_overlaps(boxes):
             def overlapping(b1, b2):
                 l1, r1 = box2pts(b1)
                 l2, r2 = box2pts(b2)
                 return not (l1[0] > r2[0] or l2[0] > r1[0] or l1[1] > r2[1] or l2[1] > r1[1])
-
+            
             def next():
                 for i in range(len(boxes)):
                     for j in range(len(boxes)):
@@ -377,26 +378,103 @@ class Segmenter:
                 y_ = max(r1[1], r2[1])
                 w, h = x_ - x, y_ - y
                 boxes.append((x, y, w, h))
+        
+        
+        def conncomp(im):
+            def min_pix_dist(labels, label1, label2):
+                idx1 = np.transpose(np.where(labels == label1))
+                idx2 = np.transpose(np.where(labels == label2))
+                return np.min(scipy.spatial.distance.cdist(idx1, idx2))
+            
+            def merge_boxes(b1, b2):
+                l1, r1 = box2pts(b1)
+                l2, r2 = box2pts(b2)
 
+                x = min(l1[0], l2[0])
+                x_ = max(r1[0], r2[0])
+                y = min(l1[1], l2[1])
+                y_ = max(r1[1], r2[1])
+                w, h = x_ - x, y_ - y
+                return x, y, w, h
+            
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(im)
+            
+            erased = {}
+            
+            for i in range(1, num_labels):
+                if stats[i,cv2.CC_STAT_AREA] < 100:
+                    labels[labels == i] = 0
+                    erased[i] = True
+            
+            #stats = [label,col] -> col = cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA
+            #standard crotchet is 80 by 30
+            for i in range(1, num_labels):
+                for j in range(1, num_labels):
+                    if i < j and i not in erased and j not in erased:
+                        centroid_i, centroid_j = centroids[i,:], centroids[j,:]
+                        area_i, area_j = stats[i,cv2.CC_STAT_AREA], stats[j,cv2.CC_STAT_AREA]
+                        x_i, x_j = stats[i,cv2.CC_STAT_LEFT], stats[j,cv2.CC_STAT_LEFT]
+                        y_i, y_j = stats[i,cv2.CC_STAT_TOP], stats[j,cv2.CC_STAT_TOP]
+                        w_i, w_j = stats[i,cv2.CC_STAT_WIDTH], stats[j,cv2.CC_STAT_WIDTH]
+                        h_i, h_j = stats[i,cv2.CC_STAT_HEIGHT], stats[j,cv2.CC_STAT_HEIGHT]
+                        
+                        centroid_dist = np.linalg.norm(centroid_i - centroid_j)
+                        """
+                        bb_occupy_i, bb_occupy_j = area_i/(w_i*h_i), area_j/(w_j*h_j)
+                        bb_occupy_varied = (bb_occupy_i < 0.5 and bb_occupy_j > 0.8) or (bb_occupy_j < 0.5 and bb_occupy_i > 0.8)
+                        bb_occupy_low = (bb_occupy_i < 0.5 and bb_occupy_j < 0.5)
+                        bb_occupy_high = (bb_occupy_i > 0.5 and bb_occupy_j > 0.5)
+                        area_diff = abs(area_i - area_j)
+                        area_perc_diff = 0.5*(float(area_diff/area_i) + float(area_diff/area_j))
+                        """
+                        
+                        # use centroid comparison first cos pixel distances is slow
+                        if centroid_dist < 30:
+                            min_dist = min_pix_dist(labels, i, j)
+                            # pretty close
+                            if min_dist < 15:
+                                # both fairly short -> whole notes split up
+                                if h_i < 40 and h_j < 40:
+                                    labels[labels == j] = i
+                                    erased[j] = True
+                                    stats[i,cv2.CC_STAT_LEFT], stats[i,cv2.CC_STAT_TOP], stats[i,cv2.CC_STAT_WIDTH], stats[i,cv2.CC_STAT_HEIGHT] = merge_boxes((x_i,y_i,w_i,h_i), (x_j,y_j,w_j,h_j))
+            
+            
+            colour = np.zeros(im.shape + (3,), dtype="uint8")
+            for label in range(1, num_labels):
+                if label in erased:
+                    continue
+                idx = np.where(labels == label)
+                for chan in range(3):
+                    channel = colour[:,:,chan]
+                    channel[idx] = np.random.randint(128, 256, dtype="uint8")
+            return (num_labels, labels, erased, stats), colour
+        
+        """
         _, contours, _ = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         new_c = []
         for c in contours:
             if cv2.contourArea(c) > 100:
                 new_c.append(c)
+        
         boxes = [cv2.boundingRect(c) for c in new_c]
 
-        colour = np.dstack((im, im, im))
-
+        #colour = np.dstack((im, im, im))
+        
         if merge_overlap:
             merge_overlaps(boxes)
 
-        draw(colour, boxes);
+        #draw(colour, boxes);
 
         symbols = boxes2symbols(boxes)
-        line_len = self.bin_img.shape[1]
-        symbols = sorted(symbols, key=lambda sym: sym.line_num * line_len + sym.x)
-        self.symbols = symbols
-        self.add_in_pictures()
+        """
+        
+        conncomps, colour = conncomp(im)
+        
+        #line_len = self.bin_img.shape[1]
+        #symbols = sorted(symbols, key=lambda sym: sym.line_num * line_len + sym.x)
+        #self.symbols = symbols
+        self.add_in_pictures(conncomps)
         return colour
 
     def get_line_number(self, x, y, w, h):
@@ -420,7 +498,7 @@ class Segmenter:
                 return -1
         return -1
 
-    def add_in_pictures(self, from_staff_removed=True, fixed_width=True, width=300, final_width=150):
+    def add_in_pictures(self, conncomps, from_staff_removed=True, fixed_width=True, width=300, final_width=150):
         """
         adds images into symbol objects. none fixed width does not work yet
         :param from_staff_removed:
@@ -430,7 +508,20 @@ class Segmenter:
         """
         base_img = self.staff_removed if from_staff_removed else self.grey_img
         o_width = width
-        for sym in self.symbols:
+        
+        symbols = []
+        num_labels, labels, erased, stats = conncomps
+        for i in range(1, num_labels):
+            if i in erased:
+                continue
+            
+            x,y,w,h = stats[i,cv2.CC_STAT_LEFT], stats[i,cv2.CC_STAT_TOP], stats[i,cv2.CC_STAT_WIDTH], stats[i,cv2.CC_STAT_HEIGHT]
+            line_num = self.get_line_number(x, y, w, h)
+            if line_num == -1:
+                continue
+            
+            sym = Symbol(SymbolType.UNKNOWN, x, y, w, h, line_num,self.grouped_staff_lines[line_num])
+            
             scale = 1
             width = o_width
             while max(max(sym.w, sym.h), width) != width:
@@ -438,9 +529,14 @@ class Segmenter:
                 scale *= 2  # use later
             offsetx = (width - sym.w) // 2
             offsety = (width - sym.h) // 2
+            
+            ref_im = np.ones_like(base_img) * 255
+            pix_idx = np.where(labels == i)
+            ref_im[pix_idx] = base_img[pix_idx]
+            
             im = np.ones((width, width), dtype=np.uint8) * 255  # white
             im[(offsety):(sym.h + offsety), (offsetx):(sym.w + offsetx)] = \
-                base_img[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
+                ref_im[sym.y:(sym.y + sym.h), sym.x:(sym.x + sym.w)]
             im = cv2.resize(im, (final_width, final_width), interpolation=cv2.INTER_CUBIC)
             sym.im = im
             sym.offsetx = offsetx
@@ -448,6 +544,18 @@ class Segmenter:
             sym.scale = scale
             sym.staff_white = self.staff_white
             sym.staff_black = self.staff_black
+            
+            symbols.append(sym)
+        
+        line_len = self.bin_img.shape[1]
+        symbols = sorted(symbols, key=lambda sym: sym.line_num * line_len + sym.x)
+        self.symbols = symbols
+        
+        """
+        for i, sym in enumerate(symbols):
+            cv2.imshow(str(i), sym.im)
+        cv2.waitKey(0)
+        """
 
 
 
@@ -528,9 +636,12 @@ class Segmenter:
         if use_cache:
             segmenter = Segmenter.load_segmenter_from_file(filename)
         if segmenter is not None:
+            #coloured = segmenter.getSymbols(True)
+            #cv2.imwrite("symbols.png", coloured)
             return segmenter.symbols, segmenter
         segmenter = Segmenter(filename)
         segmenter.remove_staff_lines()
-        segmenter.getSymbols(True)
+        coloured = segmenter.getSymbols(True)
+        #cv2.imwrite("symbols.png", coloured)
         segmenter.save_to_file()
         return segmenter.symbols, segmenter
