@@ -2,7 +2,7 @@ import cv2
 import os
 from typing import List, Any
 
-from music21 import *
+from music21 import duration, stream, note
 
 from Symbol import Symbol, SymbolType, SymbolType_Duration
 
@@ -39,8 +39,9 @@ treble_values = {
     14: 'E6'
 }
 
+
 def to_pitchStr_treble(amount):
-    try :
+    try:
         return treble_values[amount]
     except Exception:
         return 'A2'
@@ -66,7 +67,7 @@ class Song:
             if name != '.DS_Store':
                 tem = cv2.imread('./resources/templates/'+name, 0)
                 templates.append((tem, name))
-        bar = 1;
+        bar = 1
         bar_length = 0
         i = 0
         for i in range(len(self.symbols)):
@@ -86,10 +87,10 @@ class Song:
                         after_ss = self.symbols[i + ii + 1]
 
                         if self.symbols[i + ii].type == SymbolType.EIGHTH:
-                             if self.symbols[i + ii - 1].type != SymbolType.EIGHTH and \
-                                     self.symbols[i + ii + 1].type != SymbolType.EIGHTH:
-                                        saw_eight_alone = True
-                                        saw_eight_alone_at = ii
+                            if self.symbols[i + ii - 1].type != SymbolType.EIGHTH and \
+                                    self.symbols[i + ii + 1].type != SymbolType.EIGHTH:
+                                saw_eight_alone = True
+                                saw_eight_alone_at = ii
                         if self.symbols[i + ii].markHalf:
                             increase_by = 4 - bar_length
                             steam_tmp = self.stream.elements[ii:]
@@ -111,7 +112,8 @@ class Song:
                     if bar_length != 4:
                         need = 4 - bar_length
                         if need == 0.5 and saw_eight_alone:
-                            print('bar {} is too short changing eighth'.format(bar, need))
+                            print(
+                                'bar {} is too short changing eighth'.format(bar, need))
                             ii = saw_eight_alone_at
                             steam_tmp = self.stream.elements[ii:]
                             self.stream = self.stream[:ii]
@@ -131,8 +133,8 @@ class Song:
                             if need != 4:
                                 self.stream.append(rest)
                 if bar_length > 4:
-                    #check if we can fix anything in this bar or add rest at end
-                    for ii in range(-1,-i,-1):
+                    # check if we can fix anything in this bar or add rest at end
+                    for ii in range(-1, -i, -1):
                         need = 4 - (bar_length - 4)
                         if self.symbols[i+ii].is_bar():
                             break
@@ -145,10 +147,10 @@ class Song:
                             new_len = max(old_len - reduce_by, 0.5)
                             d = duration.Duration()
                             d.quarterLength = new_len
-                            n = note.Note(pitch=steam_tmp[0].pitch,duration=d)
+                            n = note.Note(pitch=steam_tmp[0].pitch, duration=d)
                             self.stream.append(n)
                             if len(steam_tmp) != 1:
-                                for iii in range(1,len(steam_tmp)):
+                                for iii in range(1, len(steam_tmp)):
                                     self.stream.append(steam_tmp[iii])
                             bar_length -= (old_len-new_len)
                             if bar_length == 4:
@@ -170,15 +172,18 @@ class Song:
                     pass
             if sym.is_note():
                 if sym.get_type() == SymbolType.TIED_EIGHTH:
-                    beam_notes = sym.determine_beamed_pitch([t for t in filter(lambda t: t[1] == 'full.png', templates)])
+                    beam_notes = sym.determine_beamed_pitch(
+                        [t for t in filter(lambda t: t[1] == 'full.png', templates)])
                     for n_p in beam_notes:
                         pitch_str = to_pitchStr_treble(n_p)
-                        n = note.Note(pitchName=pitch_str, duration=get_duration_from_name('eighth'))
+                        n = note.Note(pitchName=pitch_str,
+                                      duration=get_duration_from_name('eighth'))
                         bar_length += 0.5
                         self.stream.append(n)
                         # Music21 will decided a nice beaming scheme for us
                 else:
-                    pitch_str = to_pitchStr_treble(sym.determine_pitch(templates))
+                    pitch_str = to_pitchStr_treble(
+                        sym.determine_pitch(templates))
                     d = get_duration_from_name(sym.get_name())
                     bar_length += d.quarterLength
                     n = note.Note(pitchName=pitch_str, duration=d)
@@ -190,5 +195,3 @@ class Song:
                 dur.quarterLength = d
                 n = note.Rest(duration=dur)
                 self.stream.append(n)
-
-
