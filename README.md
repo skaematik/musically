@@ -21,6 +21,7 @@ python app.py
 or for debug mode:
 
 ```
+cd src
 python app.py -d
 ```
 

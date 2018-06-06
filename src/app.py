@@ -23,6 +23,35 @@ if not os.path.exists(app.config['UPLOADED_PATH']):
 
 dropzone = Dropzone(app)
 
+def init_folders():
+    import os, errno
+    folders = [
+        'resources/mid',
+        'resources/model',
+        'resources/mxl',
+        'resources/sheets',
+        'resources/sounds',
+        'resources/templates',
+        'uploads',
+        'cached_segmenter',
+        'cached_stream'
+    ]
+    for f in folders:
+        try:
+            os.makedirs(f)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+init_folders()
+
+def get_model():
+    import urllib
+    model = urllib.URLopener()
+    model.retrieve("https://www.dropbox.com/s/vllgec938hdxrcq/keras_modelv3.h5?dl=1", "resources/model/keras_modelv3.h5")
+
+get_model()
+
 # TODO: do we really need CORS?
 
 from music21 import vexflow, note
